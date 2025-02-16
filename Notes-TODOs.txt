@@ -1,0 +1,18 @@
+Notes and TODOs
+
+
+TODOs
+Normalize flyscan data
+Rebin data to lower resolution
+
+
+SAXS
+WAXS
+
+
+
+
+Nika parameters conversion Peter :
+https://github.com/usnistgov/PyHyperScattering/blob/main/src/PyHyperScattering/PFGeneralIntegrator.py#L744
+
+
