@@ -10,6 +10,11 @@ SAXS
 WAXS
 
 
+Code to read and write NXcanSAS data is here:
+
+https://github.com/usnistgov/PyHyperScattering/blob/main/src/PyHyperScattering/FileIO.py
+
+https://github.com/usnistgov/PyHyperScattering/blob/main/src/PyHyperScattering/Nexus.py
 
 
 Nika parameters conversion Peter :
