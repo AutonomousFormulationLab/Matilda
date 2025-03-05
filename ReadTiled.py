@@ -48,6 +48,8 @@ tz = "US/Central"
 # &omit_links=true
 # &select_metadata={detectors:start.detectors,motors:start.motors,plan_name:start.plan_name,time:start.time,
 # scan_title:start.plan_args.scan_title,title:start.title,hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}
+
+#this requests all different records from given time range
 uri =(
     f"http://{server}:{port}"  # standard prefix
     "/api/v1/search"    # API command
@@ -65,14 +67,17 @@ uri =(
                         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"
 )
 #print(f"{uri=}")
-r = requests.get(uri).json()
-print(r["data"][0])
+#r = requests.get(uri).json()
+#print(r["data"][0])
 
 def print_results_summary(r):
     """We'll use this a few times."""
     xref = dict(First=0, Last=-1)
     for k, v in dict(First=0, Last=-1).items():
-        md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
+        if server ==  "localhost" :
+            md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
+        else:                                          
+            md = r["data"][v]["attributes"]["metadata"]     #this is for usaxscontrol 
         #print(md)
         plan_name = md["plan_name"]
         scan_id = r["data"][v]["id"]
@@ -80,14 +85,33 @@ def print_results_summary(r):
         hdf5_file = md["hdf5_file"]
         hdf5_path = md["hdf5_path"]
         print(f"{k:5s} run: {plan_name=} started : {started} path: {hdf5_path=} {hdf5_file=} id: {scan_id}")
-        
-print(f'Search of {catalog=} has {len(r["data"])} runs.')
-print_results_summary(r)
 
-#now lets find only FLyscan data
+
+def convert_results(r):
+    OutputList=[]
+    for v in range(len(r["data"])):
+        if server ==  "localhost" :
+            md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
+        else:                                          
+            md = r["data"][v]["attributes"]["metadata"]     #this is for usaxscontrol 
+        #print(md)
+        #plan_name = md["plan_name"]
+        #scan_id = r["data"][v]["id"]
+        #started = ts_to_iso(md["time"])
+        hdf5_file = md["hdf5_file"]
+        hdf5_path = md["hdf5_path"]
+        #print(f" path: {hdf5_path=} {hdf5_file=}")
+        OutputList.append([hdf5_path,hdf5_file])
+    return OutputList
+        
+#print(f'Search of {catalog=} has {len(r["data"])} runs.')
+#print_results_summary(r)
+
+#now lets find only Flyscan data
 plan_name = "Flyscan"
 print(f"Search for {plan_name=}")
 
+#this filters for specific time AND for specific plan_name
 uri = (
     f"http://{server}:{port}"
     "/api/v1/search"
@@ -104,10 +128,11 @@ uri = (
     "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
                         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
 )
-print(f"{uri=}")
+#print(f"{uri=}")
 r = requests.get(uri).json()
 
-print(f'Search of {catalog=} has {len(r["data"])} runs.')
-print_results_summary(r)
-
-
+#print(f'Search of {catalog=} has {len(r["data"])} runs.')
+#print_results_summary(r)
+# this is now a list of Flyscan data sets
+FlyscanList = convert_results(r)
+#print(FlyscanList)
