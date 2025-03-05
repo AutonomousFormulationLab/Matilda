@@ -26,6 +26,9 @@ import datetime
 def iso_to_ts(isotime):
     return datetime.datetime.fromisoformat(isotime).timestamp()
 
+def ts_to_iso(time):
+    return datetime.datetime.fromtimestamp(time).isoformat()
+
 server = "localhost"
 port = 8020
 catalog = "usaxs"
@@ -63,7 +66,7 @@ uri =(
 )
 #print(f"{uri=}")
 r = requests.get(uri).json()
-#print(r["data"][0])
+print(r["data"][0])
 
 def print_results_summary(r):
     """We'll use this a few times."""
@@ -71,15 +74,39 @@ def print_results_summary(r):
     for k, v in dict(First=0, Last=-1).items():
         md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
         #print(md)
-        # md keys: start  stop  summary
-        # summary key is composed by tiled server
         plan_name = md["plan_name"]
-        #scan_id = md["data"]["id"]
-        #started = md["data"]["datetime"]
+        scan_id = r["data"][v]["id"]
+        started = ts_to_iso(md["time"])
         hdf5_file = md["hdf5_file"]
         hdf5_path = md["hdf5_path"]
-        print(f"{k:5s} run: {plan_name=} path: {hdf5_path=} {hdf5_file=}")
+        print(f"{k:5s} run: {plan_name=} started : {started} path: {hdf5_path=} {hdf5_file=} id: {scan_id}")
         
+print(f'Search of {catalog=} has {len(r["data"])} runs.')
+print_results_summary(r)
+
+#now lets find only FLyscan data
+plan_name = "Flyscan"
+print(f"Search for {plan_name=}")
+
+uri = (
+    f"http://{server}:{port}"
+    "/api/v1/search"
+    f"/{catalog}"
+    "?page[limit]=100"                                                  # 0: all matching
+    "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
+    f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
+    f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
+    f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
+    f"&filter[time_range][condition][timezone]={tz}"                    # time range
+    "&sort=time"                                                        # sort by time
+    "&fields=metadata"                                                  # return metadata
+    "&omit_links=true"                                                  # no links
+    "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+                        hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
+)
+print(f"{uri=}")
+r = requests.get(uri).json()
+
 print(f'Search of {catalog=} has {len(r["data"])} runs.')
 print_results_summary(r)
 
