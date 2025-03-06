@@ -1,0 +1,14 @@
+# this file will process bunch of Flyscan data files.
+
+
+
+
+# list fo files will be generated as a list of lists
+# each list will have two items: path and file name
+# this will be used to process the data files  
+# this is example of how the lists looks like:
+# [['/share1/USAXS_data/2025-02/02_14_AMB4_800C/02_14_AMB4_800C_usaxs', 'AMB4_800C_71min_0564.h5'], 
+#   ['/share1/USAXS_data/2025-02/02_14_AMB4_800C/02_14_AMB4_800C_usaxs', 'AMB4_800C_73min_0565.h5'], 
+#  ]
+
+
