@@ -1,1 +1,5 @@
 .DS_Store
+usaxs.jpg
+.gitignore
+__pycache__/ReadTiled.cpython-312.pyc
+__pycache__/ReadFlyscan.cpython-312.pyc
