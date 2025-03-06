@@ -1,5 +1,8 @@
 # this file will process bunch of Flyscan data files.
-
+# to run setup proper conda environment and run the following command:
+# python processFlyscans.py
+# this will process the data files and generate a plot of UPD vs. Q
+# the test data files are located in the directory: /home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs
 
 from ReadFlyscan import ProcessFlyscan
 from ReadTiled import FindLastFSdata
@@ -77,10 +80,8 @@ def PlotResults(ListOfresults):
     #plt.savefig('usaxs.jpg', format='jpg', dpi=300)
     plt.show()
 
-#if __file__ == "__main__":
-ListOfresults = ProcessFlyscans()
-PlotResults(ListOfresults)
-#pp.pprint(ListOfresults)
-# for result in ListOfresults:
-#     PlotResults(result)
-print("Done processing the Flyscans")
+if __name__ == "__main__":
+    print("Processing the Flyscans")
+    ListOfresults = ProcessFlyscans()
+    PlotResults(ListOfresults)
+    print("Done processing the Flyscans")
