@@ -33,10 +33,6 @@ server = "localhost"
 port = 8020
 catalog = "usaxs"
 
-# Find all runs in a catalog between these two ISO8601 dates.
-start_time = "2025-02-15"
-end_time = "2025-02-25"
-tz = "US/Central"
 
 
 #  http://10.211.55.7:8020/api/v1/search//usaxs/?page[offset]=0
@@ -50,22 +46,22 @@ tz = "US/Central"
 # scan_title:start.plan_args.scan_title,title:start.title,hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}
 
 #this requests all different records from given time range
-uri =(
-    f"http://{server}:{port}"  # standard prefix
-    "/api/v1/search"    # API command
-    f"/{catalog}"       # catalog
-    "?"                 # begin any command options
-    "page[limit]=10"   # 0: all matching
-    "&"                 # separator between any additional options
-    f"filter[time_range][condition][since]={iso_to_ts(start_time)}"
-    f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"
-    f"&filter[time_range][condition][timezone]={tz}"
-    "&sort=time"
-    "&fields=metadata"
-    "&omit_links=true"
-    "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
-                        hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"
-)
+# uri =(
+#     f"http://{server}:{port}"  # standard prefix
+#     "/api/v1/search"    # API command
+#     f"/{catalog}"       # catalog
+#     "?"                 # begin any command options
+#     "page[limit]=10"   # 0: all matching
+#     "&"                 # separator between any additional options
+#     f"filter[time_range][condition][since]={iso_to_ts(start_time)}"
+#     f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"
+#     f"&filter[time_range][condition][timezone]={tz}"
+#     "&sort=time"
+#     "&fields=metadata"
+#     "&omit_links=true"
+#     "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+#                         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"
+# )
 #print(f"{uri=}")
 #r = requests.get(uri).json()
 #print(r["data"][0])
@@ -107,32 +103,40 @@ def convert_results(r):
 #print(f'Search of {catalog=} has {len(r["data"])} runs.')
 #print_results_summary(r)
 
-#now lets find only Flyscan data
-plan_name = "Flyscan"
-print(f"Search for {plan_name=}")
 
-#this filters for specific time AND for specific plan_name
-uri = (
-    f"http://{server}:{port}"
-    "/api/v1/search"
-    f"/{catalog}"
-    "?page[limit]=100"                                                  # 0: all matching
-    "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
-    f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-    f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
-    f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
-    f"&filter[time_range][condition][timezone]={tz}"                    # time range
-    "&sort=time"                                                        # sort by time
-    "&fields=metadata"                                                  # return metadata
-    "&omit_links=true"                                                  # no links
-    "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
-                        hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
-)
-#print(f"{uri=}")
-r = requests.get(uri).json()
+def FindLastFSdata():
+    #now lets find only Flyscan data
+    plan_name = "Flyscan"
+    #print(f"Search for {plan_name=}")
+    # Find all runs in a catalog between these two ISO8601 dates.
+    # TODO - manage the times by remebering last call and only asking for data since last time
+    start_time = "2025-02-15"
+    end_time = "2025-02-25"
+    tz = "US/Central"
 
-#print(f'Search of {catalog=} has {len(r["data"])} runs.')
-#print_results_summary(r)
-# this is now a list of Flyscan data sets
-FlyscanList = convert_results(r)
-#print(FlyscanList)
+    #this filters for specific time AND for specific plan_name
+    uri = (
+        f"http://{server}:{port}"
+        "/api/v1/search"
+        f"/{catalog}"
+        "?page[limit]=100"                                                  # 0: all matching
+        "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
+        f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
+        f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
+        f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
+        f"&filter[time_range][condition][timezone]={tz}"                    # time range
+        "&sort=time"                                                        # sort by time
+        "&fields=metadata"                                                  # return metadata
+        "&omit_links=true"                                                  # no links
+        "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+                            hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
+    )
+    #print(f"{uri=}")
+    r = requests.get(uri).json()
+
+    #print(f'Search of {catalog=} has {len(r["data"])} runs.')
+    #print_results_summary(r)
+    # this is now a list of Flyscan data sets
+    FlyscanList = convert_results(r)
+    #print(FlyscanList)
+    return FlyscanList

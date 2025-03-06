@@ -278,6 +278,17 @@ def PlotResults(data_dict):
     plt.show()
 
 
+def ProcessFlyscan(filename):
+    Sample = dict()
+    Sample["RawData"]=ImportFlyscan(filename)
+    #pp.pprint(Sample)
+    Sample["ReducedData"]= CorrectUPDGains(Sample)
+    Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+    #pp.pprint(Sample["ReducedData"])
+    #PlotResults(Sample)
+    return Sample
+
+
 
 #if __file__ == "__main__":
 Sample = dict()
