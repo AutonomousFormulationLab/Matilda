@@ -41,11 +41,11 @@ def gaussian(x, a, x0, sigma):
 
 
 ## main code here
-def ImportFlyscan(filename):
+def ImportFlyscan(path, filename):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
-    with h5py.File(filename, 'r') as file:
+    with h5py.File(path+"/"+filename, 'r') as file:
         #read various data sets
-            #figure out how many points are in AR angles, this has 1 more point that mca data, usually
+        #figure out how many points are in AR angles, this has 1 more point that mca data, usually
         dataset = file['/entry/flyScan/AR_PulsePositions'] 
         ARangles =  np.ravel(np.array(dataset))
         num_elements = ARangles.size - 1 
@@ -79,7 +79,8 @@ def ImportFlyscan(filename):
     # Call the function with your arrays
     check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
     #Package these results into distionary
-    data_dict = {"ARangles":ARangles, 
+    data_dict = {"Filename": filename,
+                "ARangles":ARangles, 
                 "TimePerPoint": TimePerPoint, 
                 "Monitor":Monitor, 
                 "UPD_array": UPD_array,
@@ -152,7 +153,7 @@ def CorrectUPDGains(data_dict):
     #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
     Frequency=1e6
     TimeInSec = TimePerPoint/Frequency
-    print("Exp. time :", sum(TimeInSec))
+    #print("Exp. time :", sum(TimeInSec))
     for i in range(0, len(Channel)-1, 1):
         startPnt=Channel[i]
         deadtimeName = 'upd_amp_change_mask_time'+str(int(AmpReqGain[i]))
@@ -203,7 +204,7 @@ def BeamCenterCorrection(data_dict):
     # Find the threshold for the top 50% of UPD_array
     threshold = np.percentile(ydata_clean, 50)
 
-    print(f"Threshold for the top 50% of UPD_array: {threshold}")
+    #print(f"Threshold for the top 50% of UPD_array: {threshold}")
 
     # Filter the data to only include the top 50%
     mask = ydata_clean >= threshold
@@ -278,9 +279,9 @@ def PlotResults(data_dict):
     plt.show()
 
 
-def ProcessFlyscan(filename):
+def ProcessFlyscan(path, filename):
     Sample = dict()
-    Sample["RawData"]=ImportFlyscan(filename)
+    Sample["RawData"]=ImportFlyscan(path, filename)
     #pp.pprint(Sample)
     Sample["ReducedData"]= CorrectUPDGains(Sample)
     Sample["ReducedData"].update(BeamCenterCorrection(Sample))
@@ -291,13 +292,13 @@ def ProcessFlyscan(filename):
 
 
 #if __file__ == "__main__":
-Sample = dict()
-Sample["RawData"]=ImportFlyscan("USAXS.h5")
-#pp.pprint(Sample)
-Sample["ReducedData"]= CorrectUPDGains(Sample)
-Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-#pp.pprint(Sample["ReducedData"])
-PlotResults(Sample)
+# Sample = dict()
+# Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
+# #pp.pprint(Sample)
+# Sample["ReducedData"]= CorrectUPDGains(Sample)
+# Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+# #pp.pprint(Sample["ReducedData"])
+# PlotResults(Sample)
 
   
     

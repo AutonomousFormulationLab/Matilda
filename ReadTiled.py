@@ -119,7 +119,7 @@ def FindLastFSdata():
         f"http://{server}:{port}"
         "/api/v1/search"
         f"/{catalog}"
-        "?page[limit]=100"                                                  # 0: all matching
+        "?page[limit]=10"                                                  # 0: all matching
         "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
         f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
