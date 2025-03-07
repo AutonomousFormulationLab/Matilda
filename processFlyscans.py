@@ -12,6 +12,7 @@ import numpy as np
 import socket
 import logging
 from logging.handlers import RotatingFileHandler
+import time
 
 
 # list of files will be generated as a list of lists
@@ -114,12 +115,17 @@ def PlotResults(ListOfresults):
     # Add legend
     plt.legend()
     # Save the plot as a JPEG image
-    #plt.savefig('usaxs.jpg', format='jpg', dpi=300)
-    plt.show()
+    plt.savefig('usaxs.jpg', format='jpg', dpi=300)
+    #plt.show()
 
 if __name__ == "__main__":
-    print("Processing the Flyscans")
-    ListOfScans = GetListOfScans()
-    ListOfresults = ProcessFlyscans(ListOfScans)
-    PlotResults(ListOfresults)
-    print("Done processing the Flyscans")
+    try:
+        while True:
+            print("Processing the Flyscans")
+            ListOfScans = GetListOfScans()
+            ListOfresults = ProcessFlyscans(ListOfScans)
+            PlotResults(ListOfresults)
+            print("Done processing the Flyscans")
+            time.sleep(30)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt")
