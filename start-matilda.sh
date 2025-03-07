@@ -7,9 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Change to the script's directory
 cd "$SCRIPT_DIR"
 
-# Activate the conda environment
-source ~/anaconda3/etc/profile.d/conda.sh  # Adjust this path if your conda is installed elsewhere
-conda activate matilda
+#MY_DIR=$(realpath "$(dirname $0)")
+#LOG_FILE="${MY_DIR}/logfile.txt"
+
+conda init
+source ${CONDA_PREFIX}/etc/profile.d/conda.sh
+CONDA_ENV=matilda
+conda activate "${CONDA_ENV}"
 
 # Run the Python script
 python processFlyscans.py
