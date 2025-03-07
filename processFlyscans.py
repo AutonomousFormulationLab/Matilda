@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import pprint as pp
 import numpy as np
 import socket
+import logging
+from logging.handlers import RotatingFileHandler
+
 
 # list of files will be generated as a list of lists
 # each list will have two items: path and file name
@@ -34,10 +37,28 @@ BeruskaListOfScans = [['/home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs'
 #ListOfTiledScans = FindLastFSdata()
 #print(f"List of Flyscans: {ListOfTiledScans=}")
 
+
+# Configure logging
+handler = RotatingFileHandler('matilda.log', maxBytes=200000, backupCount=1)
+logging.basicConfig(
+    handlers=[handler],
+    level=logging.DEBUG,        # Set the logging level
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Format of the log messages
+    datefmt='%Y-%m-%d %H:%M:%S'  # Date format
+)
+
+# # Log messages
+# logging.debug('This is a debug message')
+# logging.info('This is an info message')
+# logging.warning('This is a warning message')
+# logging.error('This is an error message')
+# logging.critical('This is a critical message')
+
 def GetListOfScans():
     #Get the hostname of the current machine
     current_hostname = socket.gethostname()
     #print(f"Current hostname: {current_hostname}")
+    logging.info(f"Current hostname: {current_hostname}")
 
     # Check if the current machine is 'usaxscontrol'
     if current_hostname == 'usaxscontrol':
