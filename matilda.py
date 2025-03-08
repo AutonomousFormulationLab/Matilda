@@ -145,17 +145,17 @@ def plotUSAXSResults(ListOfresults):
 if __name__ == "__main__":
     #these are calls to get last 10 scans for Flyscan, SAXS and WAXS
     #print (FindLastScanData("Flyscan",10))
-    print (FindLastScanData("uascan",10))
+    #print (FindLastScanData("uascan",10))
     #print (FindLastScanData("SAXS",10))
     #print (FindLastScanData("WAXS",10))
     # this has been shown to work
-    # try:
-    #     while True:
-    #         print("Processing the Flyscans")
-    #         ListOfScans = GetListOfScans("Flyscan")
-    #         ListOfresults = reduceFlyscanToQR(ListOfScans)
-    #         plotUSAXSResults(ListOfresults)
-    #         print("Done processing the Flyscans")
-    #         time.sleep(30)
-    # except KeyboardInterrupt:
-    #     print("Keyboard interrupt")
+    try:
+        while True:
+            print("Processing the Flyscans")
+            ListOfScans = GetListOfScans("Flyscan")
+            ListOfresults = reduceFlyscanToQR(ListOfScans)
+            plotUSAXSResults(ListOfresults)
+            print("Done processing the Flyscans")
+            time.sleep(30)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt")
