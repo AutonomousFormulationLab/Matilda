@@ -1,8 +1,3 @@
 .DS_Store
 usaxs.jpg
 .gitignore
-__pycache__/*.pyc
-matilda.log.1
-matilda.log
-matilda-manage.log
-matilda-manage.pid
