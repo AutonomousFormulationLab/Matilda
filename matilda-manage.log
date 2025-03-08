@@ -1,1 +1,3 @@
 # [2025-03-06T19:59:11-07:00 ./matilda-manage.sh] started 23321: /home/parallels/Github/Matilda/in-screen.sh
+# [2025-03-07T21:09:58-07:00 ./matilda-manage.sh] could not identify running process 23321, starting new process
+# [2025-03-07T21:10:00-07:00 ./matilda-manage.sh] started 63259: /home/parallels/Github/Matilda/in-screen.sh

@@ -4,3 +4,5 @@ usaxs.jpg
 __pycache__/*.pyc
 matilda.log.1
 matilda.log
+matilda-manage.log
+matilda-manage.pid
