@@ -34,6 +34,14 @@ BeruskaListOfFlyScans = [['/home/parallels/Documents/02_21_Megan/02_21_Megan_usa
                ['/home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs','PPOH_225C_1_0067.h5'],
             ] 
 
+BeruskaListOfStepScans = [['/home/parallels/Documents/02_21_Megan/step','AirBlank_300pts_0110.h5'],
+                ['/home/parallels/Documents/02_21_Megan/step','AirBlank_300pts_0111.h5'],
+                ['/home/parallels/Documents/02_21_Megan/step','AirBlank_300pts_0113.h5'],
+                ['/home/parallels/Documents/02_21_Megan/step','SRM3607_300pts_0097.h5'],
+                ['/home/parallels/Documents/02_21_Megan/step','SRM3607_300pts_0098.h5'],
+                ['/home/parallels/Documents/02_21_Megan/step','SRM3607_300pts_0099.h5'],
+            ]
+
 BeruskaListOfSAXSScans = [['/home/parallels/Documents/02_21_Megan/02_21_Megan_saxs','HeaterBlank_0060.hdf'],
                ['/home/parallels/Documents/02_21_Megan/02_21_Megan_saxs','PPOH_225C_3_0069.hdf'],
                ['/home/parallels/Documents/02_21_Megan/02_21_Megan_saxs','PPOH_25C_orig_0066.hdf'],
@@ -91,7 +99,9 @@ def GetListOfScans(plan_name):
             return BeruskaListOfSAXSScans
         elif plan_name == 'WAXS':
             return BeruskaListOfWAXSScans
-        else:
+        elif plan_name == 'uascan':
+            return BeruskaListOfStepScans
+        else:               #flyscans are default
             return BeruskaListOfFlyScans
 
 
@@ -104,7 +114,7 @@ def processFlyscans(ListOfScans):
         path = scan[0]
         filename = scan[1]
         #print(f"Processing file: {filename}")
-        results.append(ProcessFlyscan(path, filename))
+        results.append(reduceFlyscanToQR(path, filename))
     #print("Done processing the Flyscans")
     return results
 
@@ -153,7 +163,7 @@ if __name__ == "__main__":
         while True:
             print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
-            ListOfresults = reduceFlyscanToQR(ListOfScans)
+            ListOfresults = processFlyscans(ListOfScans)
             plotUSAXSResults(ListOfresults)
             print("Done processing the Flyscans")
             time.sleep(30)
