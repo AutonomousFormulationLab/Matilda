@@ -269,7 +269,7 @@ def PlotResults(data_dict):
     plt.show()
 
 
-def ProcessFlyscan(path, filename):
+def reduceFlyscanToQR(path, filename):
     # Open the HDF5 file in read/write mode
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
         # # Check if the group 'root/displayData' exists

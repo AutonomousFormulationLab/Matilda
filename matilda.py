@@ -4,7 +4,7 @@
 # this will process the data files and generate a plot of UPD vs. Q
 # the test data files are located in the directory: /home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs
 
-from convertflyscan import ProcessFlyscan
+from convertflyscan import reduceFlyscanToQR
 from readfromtiled import FindLastScanData
 import matplotlib.pyplot as plt
 import pprint as pp
@@ -143,11 +143,16 @@ def plotUSAXSResults(ListOfresults):
     #plt.show()
 
 if __name__ == "__main__":
+    #these are calls to get last 10 scans for Flyscan, SAXS and WAXS
+    #print (FindLastScanData("Flyscan",10))
+    #print (FindLastScanData("SAXS",10))
+    #print (FindLastScanData("WAXS",10))
+    # this has been shown to work
     try:
         while True:
             print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
-            ListOfresults = processFlyscans(ListOfScans)
+            ListOfresults = reduceFlyscanToQR(ListOfScans)
             plotUSAXSResults(ListOfresults)
             print("Done processing the Flyscans")
             time.sleep(30)

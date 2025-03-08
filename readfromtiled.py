@@ -88,22 +88,22 @@ def FindLastScanData(plan_name,NumScans=10):
         f"http://{server}:{port}"
         "/api/v1/search"
         f"/{catalog}"
-        f"?page[limit]={-1*NumScans}"                                                  # 0: all matching, -10 last 10
+        f"?page[limit]={NumScans}"                                                  # 0: all matching, -10 last 10
         "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
         #f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
         #f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
         #f"&filter[time_range][condition][timezone]={tz}"                    # time range
-        "&sort=time"                                                        # sort by time
+        "&sort=-time"                                                        # sort by time
         "&fields=metadata"                                                  # return metadata
         "&omit_links=true"                                                  # no links
         "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
-                            hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
+hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
     )
-    #print(f"{uri=}")
+    print(f"{uri=}")
     r = requests.get(uri).json()
 
-    #print(f'Search of {catalog=} has {len(r["data"])} runs.')
+    print(f'Search of {catalog=} has {len(r["data"])} runs.')
     #print_results_summary(r)
     # this is now a list of Flyscan data sets
     ScanList = convert_results(r)
