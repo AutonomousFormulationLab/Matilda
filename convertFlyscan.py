@@ -73,12 +73,10 @@ def ImportFlyscan(path, filename):
         instrument_group = file['/entry/instrument']
         instrument_dict = read_group_to_dict(instrument_group)
 
-    #print(instrument_dict["monochromator"]["wavelength"])
-
 
     # Call the function with your arrays
     check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
-    #Package these results into distionary
+    #Package these results into dictionary
     data_dict = {"Filename": filename,
                 "ARangles":ARangles, 
                 "TimePerPoint": TimePerPoint, 
@@ -253,14 +251,6 @@ def BeamCenterCorrection(data_dict):
     # Now, metadata_dict contains the data from the /entry/metadata group
     #pp.pprint(instrument_dict)
 
-    # # Plot the data
-    # plt.figure(figsize=(10, 6))
-    # plt.plot(UPD)
-    # plt.title('Plot of Data from /entry/flyScan/AmpGain_array')
-    # plt.xlabel('Index')
-    # plt.ylabel('Value')
-    # plt.grid(True)
-    # plt.show()
 
 def PlotResults(data_dict):
     # Find Peak center and create Q vector.

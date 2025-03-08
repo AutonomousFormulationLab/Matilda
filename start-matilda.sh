@@ -16,4 +16,4 @@ CONDA_ENV=matilda
 conda activate "${CONDA_ENV}"
 
 # Run the Python script
-python processFlyscans.py
+python matilda.py
