@@ -2,7 +2,7 @@
 # version 0.1   2025-03-04
 
 
-# this code will get last N data sets from tiled database
+# this code will get last N data sets from tiled database for Flyscan, USAXS, SAXS, and WAXS
 # it will recreate what IR3BS_GetJSONScanData() does in Indra package In3_ClueSkyreader.ipf
 # it wil luse tiled web interface and read data into json.
 # the main purpose is to get list fo filenames and paths for the last N scans
@@ -34,37 +34,6 @@ port = 8020
 catalog = "usaxs"
 
 
-
-#  http://10.211.55.7:8020/api/v1/search//usaxs/?page[offset]=0
-# &page[limit]=100
-# &filter[time_range][condition][since]=1738738800
-# &filter[time_range][condition][timezone]=US/Central
-# &sort=time
-# &fields=metadata
-# &omit_links=true
-# &select_metadata={detectors:start.detectors,motors:start.motors,plan_name:start.plan_name,time:start.time,
-# scan_title:start.plan_args.scan_title,title:start.title,hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}
-
-#this requests all different records from given time range
-# uri =(
-#     f"http://{server}:{port}"  # standard prefix
-#     "/api/v1/search"    # API command
-#     f"/{catalog}"       # catalog
-#     "?"                 # begin any command options
-#     "page[limit]=10"   # 0: all matching
-#     "&"                 # separator between any additional options
-#     f"filter[time_range][condition][since]={iso_to_ts(start_time)}"
-#     f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"
-#     f"&filter[time_range][condition][timezone]={tz}"
-#     "&sort=time"
-#     "&fields=metadata"
-#     "&omit_links=true"
-#     "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
-#                         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"
-# )
-#print(f"{uri=}")
-#r = requests.get(uri).json()
-#print(r["data"][0])
 
 def print_results_summary(r):
     """We'll use this a few times."""
@@ -104,14 +73,14 @@ def convert_results(r):
 #print_results_summary(r)
 
 
-def FindLastFSdata():
+def FindLastScanData(plan_name,NumScans=10):
     #now lets find only Flyscan data
-    plan_name = "Flyscan"
+    #plan_name = "Flyscan"
     #print(f"Search for {plan_name=}")
     # Find all runs in a catalog between these two ISO8601 dates.
-    # TODO - manage the times by remebering last call and only asking for data since last time
-    start_time = "2025-02-15"
-    end_time = "2025-02-25"
+    # TODO - manage the times by rembering last call and only asking for data since last time
+    #start_time = "2025-02-15"
+    #end_time = "2025-02-25"
     tz = "US/Central"
 
     #this filters for specific time AND for specific plan_name
@@ -119,12 +88,12 @@ def FindLastFSdata():
         f"http://{server}:{port}"
         "/api/v1/search"
         f"/{catalog}"
-        "?page[limit]=-10"                                                  # 0: all matching, -10 last 10
+        f"?page[limit]={-1*NumScans}"                                                  # 0: all matching, -10 last 10
         "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-        f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
-        f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
-        f"&filter[time_range][condition][timezone]={tz}"                    # time range
+        #f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
+        #f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
+        #f"&filter[time_range][condition][timezone]={tz}"                    # time range
         "&sort=time"                                                        # sort by time
         "&fields=metadata"                                                  # return metadata
         "&omit_links=true"                                                  # no links
@@ -137,6 +106,40 @@ def FindLastFSdata():
     #print(f'Search of {catalog=} has {len(r["data"])} runs.')
     #print_results_summary(r)
     # this is now a list of Flyscan data sets
-    FlyscanList = convert_results(r)
-    #print(FlyscanList)
-    return FlyscanList
+    ScanList = convert_results(r)
+    #print(ScanList)
+    return ScanList
+
+
+
+
+#  http://10.211.55.7:8020/api/v1/search//usaxs/?page[offset]=0
+# &page[limit]=100
+# &filter[time_range][condition][since]=1738738800
+# &filter[time_range][condition][timezone]=US/Central
+# &sort=time
+# &fields=metadata
+# &omit_links=true
+# &select_metadata={detectors:start.detectors,motors:start.motors,plan_name:start.plan_name,time:start.time,
+# scan_title:start.plan_args.scan_title,title:start.title,hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}
+
+#this requests all different records from given time range
+# uri =(
+#     f"http://{server}:{port}"  # standard prefix
+#     "/api/v1/search"    # API command
+#     f"/{catalog}"       # catalog
+#     "?"                 # begin any command options
+#     "page[limit]=10"   # 0: all matching
+#     "&"                 # separator between any additional options
+#     f"filter[time_range][condition][since]={iso_to_ts(start_time)}"
+#     f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"
+#     f"&filter[time_range][condition][timezone]={tz}"
+#     "&sort=time"
+#     "&fields=metadata"
+#     "&omit_links=true"
+#     "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+#                         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"
+# )
+#print(f"{uri=}")
+#r = requests.get(uri).json()
+#print(r["data"][0])
