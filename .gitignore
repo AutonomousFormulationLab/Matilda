@@ -1,8 +1,6 @@
 .DS_Store
 usaxs.jpg
 .gitignore
-__pycache__/ReadTiled.cpython-312.pyc
-__pycache__/ReadFlyscan.cpython-312.pyc
-__pycache__/readfromtiled.cpython-312.pyc
+__pycache__/*.pyc
 matilda.log.1
 matilda.log
