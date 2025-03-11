@@ -7,6 +7,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
 from supportFunctions import read_group_to_dict
+import os
 
 
 
@@ -61,7 +62,7 @@ def ImportFlyscan(path, filename):
     # Call the function with your arrays
     check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
     #Package these results into dictionary
-    data_dict = {"Filename": filename,
+    data_dict = {"Filename": os.path.splitext(filename)[0],
                 "ARangles":ARangles, 
                 "TimePerPoint": TimePerPoint, 
                 "Monitor":Monitor, 
@@ -150,17 +151,7 @@ def CorrectUPDGains(data_dict):
             indx += 1
 
     #Correct UPD for gains
-    UPD_corrected = (UPD_array)/(Gains) 
-    
-#    # Plot ydata against xdata
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(UPD_corrected)
-#     plt.title('Plot of Data from /entry/flyScan/AmpGain_array')
-#     plt.xlabel('Index')
-#     plt.ylabel('Value')
-#     plt.grid(True)
-#     plt.show()
-    
+    UPD_corrected = (UPD_array)/(Gains)     
     #UPD_array_log=np.log(UPD_array)
     result = {"UPD":UPD_corrected}
     return result

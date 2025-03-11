@@ -4,8 +4,9 @@
 # this will process the data files and generate a plot of UPD vs. Q
 # the test data files are located in the directory: /home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs
 
-from convertflyscan import reduceFlyscanToQR
+from convertUSAXS import reduceFlyscanToQR
 from readfromtiled import FindLastScanData
+from convertSAS import reduceADToQR
 import matplotlib.pyplot as plt
 import pprint as pp
 import numpy as np
@@ -118,6 +119,16 @@ def processFlyscans(ListOfScans):
     #print("Done processing the Flyscans")
     return results
 
+def processSASdata(ListOfScans):
+    results=[]
+    for scan in ListOfScans:
+        path = scan[0]
+        filename = scan[1]
+        #print(f"Processing file: {filename}")
+        results.append(reduceADToQR(path, filename))
+    #print("Done processing the Flyscans")
+    return results
+
 def plotUSAXSResults(ListOfresults):  
     # Number of data sets
     num_data_sets = len(ListOfresults)
@@ -131,7 +142,7 @@ def plotUSAXSResults(ListOfresults):
     #    plt.plot(x, y, color=color, label=label)
 
     # Plot ydata against xdata
-    plt.figure(figsize=(6, 12))
+    plt.figure(figsize=(6, 6))
     for i, color in zip(range(len(ListOfresults)),colors):
         data_dict = ListOfresults[i]
         label = data_dict["RawData"]["Filename"]
@@ -152,6 +163,47 @@ def plotUSAXSResults(ListOfresults):
     plt.savefig('usaxs.jpg', format='jpg', dpi=300)
     #plt.show()
 
+def plotSWAXSResults(ListOfresults, isSAXS = True):  
+    # Number of data sets
+    num_data_sets = len(ListOfresults)
+    # Choose a colormap
+    cmap = plt.get_cmap('viridis')
+    # Generate colors from the colormap
+    colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
+    # Plot ydata against xdata
+    plt.figure(figsize=(6, 6))
+    for i, color in zip(range(len(ListOfresults)),colors):
+        data_dict = ListOfresults[i]
+        label = data_dict["RawData"]["Filename"]
+        Q_array = data_dict["ReducedData"]["Q_array"]
+        UPD = data_dict["ReducedData"]["Intensity"]
+        plt.plot(Q_array, UPD, color=color, linestyle='-', label=label)  # You can customize the marker and linestyle
+    
+    plt.ylabel('Intensity')   
+    if isSAXS:
+        plt.title('Plot of SAXS Intensity vs. Q')   
+        plt.xlabel('log(Q) [1/A]')
+        plt.xscale('log')
+        plt.yscale('log')
+        #plt.xlim(1e-5, 1)
+        plt.grid(True)
+        # Add legend
+        plt.legend()
+        plt.savefig('saxs.jpg', format='jpg', dpi=300)
+    else:
+        plt.title('Plot of WAXS Intensity vs. Q')   
+        plt.xlabel('Q [1/A]')
+        plt.xscale('linear')
+        plt.yscale('linear')        
+       #plt.xlim(1e-5, 1)
+        plt.grid(True)
+        # Add legend
+        plt.legend()
+        # Save the plot as a JPEG image
+        plt.savefig('waxs.jpg', format='jpg', dpi=300)
+    plt.show()
+
+
 if __name__ == "__main__":
     #these are calls to get last 10 scans for Flyscan, SAXS and WAXS
     #print (FindLastScanData("Flyscan",10))
@@ -166,6 +218,16 @@ if __name__ == "__main__":
             ListOfresults = processFlyscans(ListOfScans)
             plotUSAXSResults(ListOfresults)
             print("Done processing the Flyscans")
+            print("Processing the SAXS scans")
+            ListOfScans = GetListOfScans("SAXS")
+            ListOfresults = processSASdata(ListOfScans)
+            plotSWAXSResults(ListOfresults,isSAXS = True)
+            print("Done processing the SAXS scans")           
+            print("Processing the WAXS scans")
+            ListOfScans = GetListOfScans("WAXS")
+            ListOfresults = processSASdata(ListOfScans)
+            plotSWAXSResults(ListOfresults, isSAXS = False)
+            print("Done processing the WAXS scans")
             time.sleep(30)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
