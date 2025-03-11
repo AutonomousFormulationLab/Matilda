@@ -37,8 +37,8 @@ with h5py.File("WAXS.hdf", 'r') as file:
     # detector_distance, convert to m
     detector_distance = instrument_dict["detector"]["distance"]* 1e-3 
     # poni1, point of intercept. 
-    poni1 = instrument_dict["detector"]["beam_center_y"] 
-    poni2 = instrument_dict["detector"]["beam_center_x"]
+    poni1 = instrument_dict["detector"]["beam_center_x"] # based on Peter's code this shoudl be opposite
+    poni2 = instrument_dict["detector"]["beam_center_y"] # poni2 shoudl be x and poni1 should be y
     poni1 = poni1 * pixel_size1 
     poni2 = poni2 * pixel_size2 
     if "pin_ccd_tilt_x" in metadata_dict:
@@ -48,17 +48,24 @@ with h5py.File("WAXS.hdf", 'r') as file:
         rot1 = metadata_dict["waxs_ccd_tilt_x"]*np.pi/180
         rot2 = metadata_dict["waxs_ccd_tilt_y"]*np.pi/180     
         
-plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
-plt.colorbar()  # Optional: Add a colorbar to show the scale
-plt.title('2D Array Visualization')
-plt.show()
+# plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
+# plt.colorbar()  # Optional: Add a colorbar to show the scale
+# plt.title('2D Array Visualization')
+# plt.show()
 
 # Define your detector geometry
 # You need to specify parameters like the detector distance, pixel size, and wavelength
 #detector_distance = 0.1  # in meters
 #pixel_size = 0.0001  # in meters
 #wavelength = 1.54e-10  # in meters (for example, Cu K-alpha)
-
+# print(f"wavelength: {wavelength}")
+# print(f"pixel_size1: {pixel_size1}")
+# print(f"pixel_size2: {pixel_size2}")
+# print(f"detector_distance: {detector_distance}")
+# print(f"poni1: {poni1}")
+# print(f"poni2: {poni2}")
+# print(f"rot1: {rot1}")
+# print(f"rot2: {rot2}")
 # Create an AzimuthalIntegrator object
 ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
                          pixel1=pixel_size1, pixel2=pixel_size2, 
@@ -69,6 +76,7 @@ ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=
 npt = 500  # Number of bins
 q, intensity = ai.integrate1d(my2DData, npt, correctSolidAngle=False, unit="q_A^-1")
 
+intensity=np.log(intensity)
 # Plot the integrated intensity
 plt.plot(q, intensity)
 plt.xlabel("q (1/Å)")
