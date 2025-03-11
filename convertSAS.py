@@ -18,7 +18,7 @@ import pprint as pp
 #def ImportFlyscan(path, filename):
 # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
 #with h5py.File(path+"/"+filename, 'r') as file:
-with h5py.File("SAXS.hdf", 'r') as file:
+with h5py.File("WAXS.hdf", 'r') as file:
     #read various data sets
     dataset = file['/entry/data/data'] 
     my2DData = np.array(dataset)
@@ -43,8 +43,8 @@ with h5py.File("SAXS.hdf", 'r') as file:
         poni2 = instrument_dict["detector"]["beam_center_y"] # poni2 shoudl be x and poni1 should be y
         poni1 = poni1 * pixel_size1 
         poni2 = poni2 * pixel_size2 
-        rot1 = metadata_dict["pin_ccd_tilt_y"]*np.pi/180
-        rot2 = metadata_dict["pin_ccd_tilt_x"]*np.pi/180
+        rot1 = metadata_dict["pin_ccd_tilt_x"]*np.pi/180
+        rot2 = metadata_dict["pin_ccd_tilt_y"]*np.pi/180
     else:
         usingWAXS=1
         poni1 = instrument_dict["detector"]["beam_center_x"] # based on Peter's code this shoudl be opposite
@@ -53,11 +53,9 @@ with h5py.File("SAXS.hdf", 'r') as file:
         poni2 = poni2 * pixel_size2 
         rot1 = metadata_dict["waxs_ccd_tilt_x"]*np.pi/180
         rot2 = metadata_dict["waxs_ccd_tilt_y"]*np.pi/180     
-print(metadata_dict["pin_ccd_tilt_y"])
-print(metadata_dict["pin_ccd_tilt_x"])
 
-rot1=0
-rot2=0
+rot1=0.0
+rot2=0.0
         
 # plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
 # plt.colorbar()  # Optional: Add a colorbar to show the scale
