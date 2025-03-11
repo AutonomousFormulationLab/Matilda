@@ -5,7 +5,7 @@ import warnings
 import datetime
 import pandas           #needs pandas for multiindex support
 
-
+#this loads NXcanSAS reduced data into an xarray dataset
 
 def loadNexus(filename):
     with h5py.File(filename, "r") as f:    
@@ -33,7 +33,7 @@ def loadNexus(filename):
                     loaded_attrs[entry] = f['entry']['attrs'][entry][()]
             except KeyError:
                 loaded_attrs[entry] = f['entry']['attrs'][entry][()]'''
-        #print(f'Loaded: {loaded_attrs}')
+        print(f'Loaded: {loaded_attrs}')
         ds.attrs.update(loaded_attrs)
 
     return ds
@@ -99,3 +99,6 @@ def _make_coords(f):
 
     return coords
 
+
+
+loadNexus("SAXS.hdf")
