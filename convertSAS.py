@@ -42,9 +42,11 @@ with h5py.File("WAXS.hdf", 'r') as file:
     poni1 = poni1 * pixel_size1 
     poni2 = poni2 * pixel_size2 
     if "pin_ccd_tilt_x" in metadata_dict:
+        usingWAXS=0
         rot1 = metadata_dict["pin_ccd_tilt_x"]*np.pi/180
         rot2 = metadata_dict["pin_ccd_tilt_y"]*np.pi/180
     else:
+        usingWAXS=1
         rot1 = metadata_dict["waxs_ccd_tilt_x"]*np.pi/180
         rot2 = metadata_dict["waxs_ccd_tilt_y"]*np.pi/180     
         
@@ -52,6 +54,18 @@ with h5py.File("WAXS.hdf", 'r') as file:
 # plt.colorbar()  # Optional: Add a colorbar to show the scale
 # plt.title('2D Array Visualization')
 # plt.show()
+
+#create mask here. Duplicate the my2DData and set all values above 1e7 to NaN
+#this is for waxs ONLY, DIFFERENT FOR saxs
+if usingWAXS:
+    mask = np.copy(my2DData)
+    mask = 0*mask   # set all values to zero
+    mask[my2DData > 1e7] = 1
+else:
+    mask = np.copy(my2DData)
+    mask = 0*mask   # set all values to zero
+    mask[my2DData < 0] = 1
+
 
 # Define your detector geometry
 # You need to specify parameters like the detector distance, pixel size, and wavelength
@@ -73,8 +87,10 @@ ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=
 
 # Perform azimuthal integration
 # You can specify the number of bins for the integration
-npt = 500  # Number of bins
-q, intensity = ai.integrate1d(my2DData, npt, correctSolidAngle=False, unit="q_A^-1")
+#set npt to larger of dimmensitonf of my2DData  `
+npt = max(my2DData.shape)
+#npt = 1000  # Number of bins
+q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
 
 intensity=np.log(intensity)
 # Plot the integrated intensity
