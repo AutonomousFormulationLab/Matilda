@@ -90,10 +90,10 @@ def GetListOfScans(plan_name):
     #print(f"Current hostname: {current_hostname}")
     logging.info(f"Current hostname: {current_hostname}")
 
-    # Check if the current machine is 'usaxscontrol'
-    if current_hostname == 'usaxscontrol':
+    # Check if the current machine is 'usaxscontrol.xray.aps.anl.gov'
+    if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         # Place the code block you want to execute here
-        print("Executing code on usaxscontrol")
+        print("Executing code on usaxscontrol.xray.aps.anl.gov")
         return FindLastScanData(plan_name,10)
     else:
         if plan_name == 'SAXS':
@@ -161,7 +161,7 @@ def plotUSAXSResults(ListOfresults):
     plt.legend()
     # Save the plot as a JPEG image
     current_hostname = socket.gethostname()
-    if current_hostname == 'usaxscontrol':
+    if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
     else:
         plt.savefig('usaxs.jpg', format='jpg', dpi=300)
@@ -194,7 +194,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         # Add legend
         plt.legend()
         current_hostname = socket.gethostname()
-        if current_hostname == 'usaxscontrol':
+        if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
             plt.savefig('/share1/local_livedata/saxs.jpg', format='jpg', dpi=300)
         else:
             plt.savefig('saxs.jpg', format='jpg', dpi=300)
@@ -209,7 +209,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         plt.legend()
         # Save the plot as a JPEG image
         current_hostname = socket.gethostname()
-        if current_hostname == 'usaxscontrol':
+        if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
             plt.savefig('/share1/local_livedata/waxs.jpg', format='jpg', dpi=300)
         else:
             plt.savefig('waxs.jpg', format='jpg', dpi=300)
