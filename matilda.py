@@ -160,6 +160,11 @@ def plotUSAXSResults(ListOfresults):
     # Add legend
     plt.legend()
     # Save the plot as a JPEG image
+    current_hostname = socket.gethostname()
+    if current_hostname == 'usaxscontrol':
+        plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
+    else:
+        plt.savefig('usaxs.jpg', format='jpg', dpi=300)
     plt.savefig('usaxs.jpg', format='jpg', dpi=300)
     #plt.show()
 
@@ -178,7 +183,6 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         Q_array = data_dict["ReducedData"]["Q_array"]
         UPD = data_dict["ReducedData"]["Intensity"]
         plt.plot(Q_array, UPD, color=color, linestyle='-', label=label)  # You can customize the marker and linestyle
-    
     plt.ylabel('Intensity')   
     if isSAXS:
         plt.title('Plot of SAXS Intensity vs. Q')   
@@ -189,19 +193,27 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         plt.grid(True)
         # Add legend
         plt.legend()
-        plt.savefig('saxs.jpg', format='jpg', dpi=300)
+        current_hostname = socket.gethostname()
+        if current_hostname == 'usaxscontrol':
+            plt.savefig('/share1/local_livedata/saxs.jpg', format='jpg', dpi=300)
+        else:
+            plt.savefig('saxs.jpg', format='jpg', dpi=300)
     else:
         plt.title('Plot of WAXS Intensity vs. Q')   
         plt.xlabel('Q [1/A]')
         plt.xscale('linear')
         plt.yscale('linear')        
-       #plt.xlim(1e-5, 1)
+        #plt.xlim(1e-5, 1)
         plt.grid(True)
         # Add legend
         plt.legend()
         # Save the plot as a JPEG image
-        plt.savefig('waxs.jpg', format='jpg', dpi=300)
-    plt.show()
+        current_hostname = socket.gethostname()
+        if current_hostname == 'usaxscontrol':
+            plt.savefig('/share1/local_livedata/waxs.jpg', format='jpg', dpi=300)
+        else:
+            plt.savefig('waxs.jpg', format='jpg', dpi=300)
+    #plt.show()
 
 
 if __name__ == "__main__":
