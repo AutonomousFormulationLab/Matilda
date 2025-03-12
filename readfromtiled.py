@@ -21,6 +21,7 @@
 import requests
 import json
 import datetime
+import socket
 
 
 def iso_to_ts(isotime):
@@ -29,7 +30,11 @@ def iso_to_ts(isotime):
 def ts_to_iso(time):
     return datetime.datetime.fromtimestamp(time).isoformat()
 
-server = "localhost"
+current_hostname = socket.gethostname()
+if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
+    server = "usaxscontrol.xray.aps.anl.gov"
+else:
+    server = "localhost"
 port = 8020
 catalog = "usaxs"
 
