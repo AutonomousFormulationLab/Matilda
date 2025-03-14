@@ -1,0 +1,14 @@
+# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis
+# Calibration done on Wed Mar 12 19:36:55 2025
+poni_version: 2.1
+Detector: Detector
+Detector_config: {"pixel1": 9.999999999999999e-05, "pixel2": 9.999999999999999e-05, "max_shape": [2048, 2048], "orientation": 3}
+Distance: 0.7138532860885125
+Poni1: 0.10437582980565381
+Poni2: 0.7959653798157565
+Rot1: 0.7807671288017295
+Rot2: 0.0004976509254730713
+Rot3: 0.0
+Wavelength: 1.0798042033530475e-11
+# Calibrant: LaB6
+# Image: fabio:///home/parallels/Github/Matilda/LaB6_45deg.tif

@@ -15,4 +15,5 @@ dependencies:
   - xarray
   - requests
   - pip
+  - tifffile
 
