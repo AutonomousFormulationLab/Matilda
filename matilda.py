@@ -163,8 +163,10 @@ def plotUSAXSResults(ListOfresults):
     current_hostname = socket.gethostname()
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
+        plt.savefig('/share1/local_livedata/stepusaxs.jpg', format='jpg', dpi=300) # this is for now, until we get the correct code for step scan USAXS
     else:
         plt.savefig('usaxs.jpg', format='jpg', dpi=300)
+        plt.savefig('stepusaxs.jpg', format='jpg', dpi=300) # this is for now, until we get the correct code for step scan USAXS
     plt.savefig('usaxs.jpg', format='jpg', dpi=300)
     #plt.show()
 
