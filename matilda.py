@@ -227,6 +227,7 @@ if __name__ == "__main__":
     # this has been shown to work
     try:
         while True:
+            print("Processing the data again")
             logging.info('Processing the Flyscans')
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
