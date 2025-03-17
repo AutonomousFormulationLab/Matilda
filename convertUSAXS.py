@@ -75,7 +75,70 @@ def ImportFlyscan(path, filename):
                 }
     
     return data_dict
+
+## main code here
+def ImportStepScan(path, filename):
+    # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
+    with h5py.File(path+"/"+filename, 'r') as file:
+        #read various data sets
+        #AR angle
+        dataset = file['/entry/data/a_stage_r'] 
+        ARangles = np.ravel(np.array(dataset))         
+        #time per point
+        dataset = file['/entry/data/seconds'] 
+        TimePerPoint = np.ravel(np.array(dataset)) 
+        #I0 - Monitor
+        dataset = file['/entry/data/I0_USAXS'] 
+        Monitor = np.ravel(np.array(dataset))  
+        #UPD
+        dataset = file['/entry/data/PD_USAXS'] 
+        UPD_array = np.ravel(np.array(dataset))
+        #Arrays for gain changes
+        dataset = file['/entry/data/upd_autorange_controls_gain'] 
+        AmpGain = np.ravel(np.array(dataset))
+        dataset = file['/entry/data/upd_autoragne_controls_reqrange'] 
+        AmpReqGain = np.ravel(np.array(dataset))
+        #Instrument
+        instrument_group = file['/entry/instrument']
+        instrument_dict = read_group_to_dict(instrument_group)        
+        #Sample
+        sample_group = file['/entry/sample']
+        sample_dict = read_group_to_dict(sample_group)
+
+
+    # Call the function with your arrays
+    check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
+    #Package these results into dictionary
+    data_dict = {"Filename": os.path.splitext(filename)[0],
+                "ARangles":ARangles, 
+                "TimePerPoint": TimePerPoint, 
+                "Monitor":Monitor, 
+                "UPD_array": UPD_array,
+                "AmpGain": AmpGain,
+                "AmpReqGain": AmpReqGain,
+                "sample": sample_dict,
+                "instrument": instrument_dict,
+                }
     
+    return data_dict
+    
+def CorrectUPDGainsStep(data_dict):
+    # create the gains array and corrects UPD for it.
+    # Masks deadtimes and raneg changes
+    # get the needed data from dictionary
+    AmpGain = data_dict["RawData"]["AmpGain"]
+    UPD_array = data_dict["RawData"]["UPD_array"]
+    
+    # Create Gains arrays - one for requested and one for real
+    num_elements = UPD_array.size 
+
+    #Correct UPD for gains
+    UPD_corrected = (UPD_array)/(AmpGain)     
+    #UPD_array_log=np.log(UPD_array)
+    result = {"UPD":UPD_corrected}
+    return result
+
+
 def CorrectUPDGains(data_dict):
     # create the gains array and corrects UPD for it.
     # Masks deadtimes and raneg changes
@@ -165,7 +228,6 @@ def BeamCenterCorrection(data_dict):
     #RawData=data_dict["rawData"]
     #ReducedData = data_dict["ReducedData"]
     ARangles = data_dict["RawData"]["ARangles"]
-    metadata_dict = data_dict["RawData"]["metadata"]
     instrument_dict = data_dict["RawData"]["instrument"]
     UPD_array = data_dict["ReducedData"]["UPD"]
 
@@ -290,15 +352,27 @@ def reduceFlyscanToQR(path, filename):
         return Sample
 
 
+def reduceStepScanToQR(path, filename):
+  # Open the HDF5 file in read/write mode
+    with h5py.File(path+'/'+filename, 'r+') as hdf_file:
+        Sample = dict()
+        Sample["RawData"]=ImportStepScan(path, filename)
+        pp.pprint(Sample)
+        Sample["ReducedData"]= CorrectUPDGains(Sample)
+        Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+        #pp.pprint(Sample["ReducedData"])
+        #PlotResults(Sample)
+        return Sample
 
-#if __name__ == "__main__":
-# Sample = dict()
-# Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
-# #pp.pprint(Sample)
-# Sample["ReducedData"]= CorrectUPDGains(Sample)
-# Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-# #pp.pprint(Sample["ReducedData"])
-# PlotResults(Sample)
+
+if __name__ == "__main__":
+    Sample = dict()
+    Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
+    pp.pprint(Sample)
+    Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
+    Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+    pp.pprint(Sample["ReducedData"])
+    PlotResults(Sample)
 
   
     
