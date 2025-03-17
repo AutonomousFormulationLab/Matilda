@@ -8,4 +8,4 @@ screen \
     -dm \
     -S "${SESSION_NAME}" \
     -h "${N_LINES}" \
-    ./start-matilda.sh
+    ./st-matilda.sh
