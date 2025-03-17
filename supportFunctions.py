@@ -12,8 +12,12 @@ def read_group_to_dict(group):
         if isinstance(item, h5py.Dataset):
             # Read the dataset
             data = item[()]
+             # Check if the dataset is bytes
+            if isinstance(data, bytes):
+                # Decode bytes to string
+                data = data.decode('utf-8')
             # Check if the dataset is an array with a single element
-            if data.size == 1:
+            elif hasattr(data, 'size') and data.size == 1:
                 # Convert to a scalar (number or string)
                 data = data.item()
             data_dict[key] = data

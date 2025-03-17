@@ -4,7 +4,7 @@
 # this will process the data files and generate a plot of UPD vs. Q
 # the test data files are located in the directory: /home/parallels/Documents/02_21_Megan/02_21_Megan_usaxs
 
-from convertUSAXS import reduceFlyscanToQR
+from convertUSAXS import reduceFlyscanToQR, reduceStepScanToQR
 from readfromtiled import FindLastScanData
 from convertSAS import reduceADToQR
 import matplotlib.pyplot as plt
@@ -119,6 +119,18 @@ def processFlyscans(ListOfScans):
     #print("Done processing the Flyscans")
     return results
 
+# Process the step scan data files
+def processStepscans(ListOfScans):
+    results=[]
+    for scan in ListOfScans:
+        path = scan[0]
+        filename = scan[1]
+        #print(f"Processing file: {filename}")
+        results.append(reduceStepScanToQR(path, filename))
+    #print("Done processing the Step scans")
+    return results
+
+
 def processSASdata(ListOfScans):
     results=[]
     for scan in ListOfScans:
@@ -129,7 +141,7 @@ def processSASdata(ListOfScans):
     #print("Done processing the Flyscans")
     return results
 
-def plotUSAXSResults(ListOfresults):  
+def plotUSAXSResults(ListOfresults, isFlyscan=True):  
     # Number of data sets
     num_data_sets = len(ListOfresults)
     # Choose a colormap
@@ -162,12 +174,15 @@ def plotUSAXSResults(ListOfresults):
     # Save the plot as a JPEG image
     current_hostname = socket.gethostname()
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
-        plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
-        plt.savefig('/share1/local_livedata/stepusaxs.jpg', format='jpg', dpi=300) # this is for now, until we get the correct code for step scan USAXS
+        if isFlyscan:
+            plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
+        else:
+            plt.savefig('/share1/local_livedata/stepusaxs.jpg', format='jpg', dpi=300) # this step scan
     else:
-        plt.savefig('usaxs.jpg', format='jpg', dpi=300)
-        plt.savefig('stepusaxs.jpg', format='jpg', dpi=300) # this is for now, until we get the correct code for step scan USAXS
-    plt.savefig('usaxs.jpg', format='jpg', dpi=300)
+        if isFlyscan:
+            plt.savefig('usaxs.jpg', format='jpg', dpi=300)
+        else:
+            plt.savefig('stepusaxs.jpg', format='jpg', dpi=300) # this step scan
     #plt.show()
 
 def plotSWAXSResults(ListOfresults, isSAXS = True):  
@@ -232,8 +247,13 @@ if __name__ == "__main__":
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
             ListOfresults = processFlyscans(ListOfScans)
-            plotUSAXSResults(ListOfresults)
-            #print("Done processing the Flyscans")
+            plotUSAXSResults(ListOfresults,isFlyscan=True)
+            logging.info('Processing the step scan')
+            #print("Processing the Stepscans")
+            ListOfScans = GetListOfScans("uascan")
+            ListOfresults = processStepscans(ListOfScans)
+            plotUSAXSResults(ListOfresults,isFlyscan=False)
+            #print("Done processing the Step scans")
             #print("Processing the SAXS scans")
             logging.info('Processing the SAXS')
             ListOfScans = GetListOfScans("SAXS")

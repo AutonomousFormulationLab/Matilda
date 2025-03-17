@@ -37,10 +37,10 @@ def ImportFlyscan(path, filename):
         ARangles= ARangles[-num_elements:]
         #time per point
         dataset = file['/entry/flyScan/mca1'] 
-        TimePerPoint = np.ravel(np.array(dataset))  #[-num_elements:]
+        TimePerPoint = np.ravel(np.array(dataset))  [-num_elements:]
         #I0 - Monitor
         dataset = file['/entry/flyScan/mca2'] 
-        Monitor = np.ravel(np.array(dataset))   #[-num_elements:]
+        Monitor = np.ravel(np.array(dataset))   [-num_elements:]
         #UPD
         dataset = file['/entry/flyScan/mca3'] 
         UPD_array = np.ravel(np.array(dataset)) [-num_elements:]
@@ -86,7 +86,10 @@ def ImportStepScan(path, filename):
         ARangles = np.ravel(np.array(dataset))         
         #time per point
         dataset = file['/entry/data/seconds'] 
-        TimePerPoint = np.ravel(np.array(dataset)) 
+        TimePerPoint = np.ravel(np.array(dataset))         
+        # I0 gain
+        dataset = file['/entry/data/I0_autorange_controls_gain'] 
+        I0gain = np.ravel(np.array(dataset)) 
         #I0 - Monitor
         dataset = file['/entry/data/I0_USAXS'] 
         Monitor = np.ravel(np.array(dataset))  
@@ -96,10 +99,13 @@ def ImportStepScan(path, filename):
         #Arrays for gain changes
         dataset = file['/entry/data/upd_autorange_controls_gain'] 
         AmpGain = np.ravel(np.array(dataset))
-        dataset = file['/entry/data/upd_autoragne_controls_reqrange'] 
+        dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
         AmpReqGain = np.ravel(np.array(dataset))
+        #metadata
+        metadata_group = file['/entry/instrument/bluesky/metadata']
+        metadata_dict = read_group_to_dict(metadata_group)     
         #Instrument
-        instrument_group = file['/entry/instrument']
+        instrument_group = file['/entry/instrument/monochromator']
         instrument_dict = read_group_to_dict(instrument_group)        
         #Sample
         sample_group = file['/entry/sample']
@@ -115,25 +121,33 @@ def ImportStepScan(path, filename):
                 "Monitor":Monitor, 
                 "UPD_array": UPD_array,
                 "AmpGain": AmpGain,
-                "AmpReqGain": AmpReqGain,
+                "I0gain": I0gain,
                 "sample": sample_dict,
+                "metadata": instrument_dict,
                 "instrument": instrument_dict,
                 }
     
     return data_dict
     
 def CorrectUPDGainsStep(data_dict):
-    # create the gains array and corrects UPD for it.
-    # Masks deadtimes and raneg changes
+    # multiply UPD by gain and divide by monitor
     # get the needed data from dictionary
     AmpGain = data_dict["RawData"]["AmpGain"]
     UPD_array = data_dict["RawData"]["UPD_array"]
+    Monitor = data_dict["RawData"]["Monitor"]
+    I0gain = data_dict["RawData"]["I0gain"]
+    # need to remove points where gain changes
+    # Find indices where the change occurs
+    change_indices = np.where(np.diff(AmpGain) != 0)[0]
+    change_indices = change_indices +1
+    # Create a copy of the array to avoid modifying the original
+    AmpGain_new = AmpGain.astype(float)  # Ensure the array can hold NaN values
     
-    # Create Gains arrays - one for requested and one for real
-    num_elements = UPD_array.size 
-
+    # Set the point before each change to NaN
+    AmpGain_new[change_indices] = np.nan   
     #Correct UPD for gains
-    UPD_corrected = (UPD_array)/(AmpGain)     
+    UPD_corrected = (UPD_array*I0gain)/(AmpGain_new*Monitor)
+    #pp.pprint(UPD_corrected)     
     #UPD_array_log=np.log(UPD_array)
     result = {"UPD":UPD_corrected}
     return result
@@ -151,8 +165,11 @@ def CorrectUPDGains(data_dict):
     instrument_dict = data_dict["RawData"]["instrument"]
     UPD_array = data_dict["RawData"]["UPD_array"]
     TimePerPoint = data_dict["RawData"]["TimePerPoint"]
+    Monitor = data_dict["RawData"]["Monitor"]
+
     
     # Create Gains arrays - one for requested and one for real
+    UPD_array_corr = UPD_array/Monitor
     num_elements = UPD_array.size 
     AmpGain_array = np.full(num_elements, AmpGain[len(AmpGain)-1])
     AmpGainReq_array = np.full(num_elements,AmpGain[len(AmpReqGain)-1])
@@ -214,7 +231,7 @@ def CorrectUPDGains(data_dict):
             indx += 1
 
     #Correct UPD for gains
-    UPD_corrected = (UPD_array)/(Gains)     
+    UPD_corrected = (UPD_array_corr)/(Gains)     
     #UPD_array_log=np.log(UPD_array)
     result = {"UPD":UPD_corrected}
     return result
@@ -230,31 +247,35 @@ def BeamCenterCorrection(data_dict):
     ARangles = data_dict["RawData"]["ARangles"]
     instrument_dict = data_dict["RawData"]["instrument"]
     UPD_array = data_dict["ReducedData"]["UPD"]
-
+    #plt.figure(figsize=(6, 12))
+    #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
     # Remove NaN values from both xdata and ydata
     nan_mask = ~np.isnan(ARangles) & ~np.isnan(UPD_array)
     xdata_clean = ARangles[nan_mask]
     ydata_clean = UPD_array[nan_mask]
-
-    # Find the threshold for the top 50% of UPD_array
-    threshold = np.percentile(ydata_clean, 50)
-
+    #plt.plot(xdata_clean, ydata_clean, marker='o', linestyle='-') 
+    # Find the threshold for the top 40% of UPD_array
+    #threshold = np.percentile(ydata_clean, 40)
+    threshold = np.max(ydata_clean)/2.3
+    #pp.pprint(threshold)
     #print(f"Threshold for the top 50% of UPD_array: {threshold}")
-
     # Filter the data to only include the top 50%
     mask = ydata_clean >= threshold
     xdata_filtered = xdata_clean[mask]
     ydata_filtered = ydata_clean[mask]
+    #plt.plot(xdata_filtered, ydata_filtered, marker='o', linestyle='-')
 
     # Initial guess for the parameters: amplitude, mean, and standard deviation
-    initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 1]
+    initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
+    #print(initial_guess)
 
     # Fit the Gaussian function to the filtered data
     popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
 
     # Extract the fitted parameters
     amplitude, x0, sigma = popt
-
+    
+    #print(popt)
     # Calculate the FWHM
     fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)
 
@@ -271,9 +292,18 @@ def BeamCenterCorrection(data_dict):
     #Make wave vector
     Q_array = np.full(UPD_array.shape, 0)
     #AR_center = metadata_dict["AR_center"]
-    wavelength = instrument_dict["monochromator"]["wavelength"]
+    try:
+        # Try to get the value using the first key
+        wavelength = instrument_dict["monochromator"]["wavelength"]
+    except KeyError:
+        #print(instrument_dict)
+        # If the first key doesn't exist, try the second key
+        wavelength = instrument_dict["wavelength"]
+
     Q_array = -1*(4*np.pi*np.sin(np.radians(ARangles-x0)/2)/wavelength)
+    #Q_array = (4*np.pi*np.sin(np.radians(ARangles-x0)/2)/wavelength)
     #Q_array_log = np.sign(Q_array)*np.log(np.abs(Q_array))
+    #pp.pprint(Q_array)
 
     results = {"Q_array":Q_array,
             "Chi-Square":chi_square,
@@ -282,11 +312,6 @@ def BeamCenterCorrection(data_dict):
             "FWHM":fwhm    
             }
     return results
-
-
-    # Print the metadata
-    # Now, metadata_dict contains the data from the /entry/metadata group
-    #pp.pprint(instrument_dict)
 
 
 def PlotResults(data_dict):
@@ -357,8 +382,8 @@ def reduceStepScanToQR(path, filename):
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
         Sample = dict()
         Sample["RawData"]=ImportStepScan(path, filename)
-        pp.pprint(Sample)
-        Sample["ReducedData"]= CorrectUPDGains(Sample)
+        #pp.pprint(Sample)
+        Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
         Sample["ReducedData"].update(BeamCenterCorrection(Sample))
         #pp.pprint(Sample["ReducedData"])
         #PlotResults(Sample)
@@ -368,11 +393,18 @@ def reduceStepScanToQR(path, filename):
 if __name__ == "__main__":
     Sample = dict()
     Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
-    pp.pprint(Sample)
+    #pp.pprint(Sample)
     Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
     Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-    pp.pprint(Sample["ReducedData"])
+    #pp.pprint(Sample["ReducedData"])
     PlotResults(Sample)
+    # Sample = dict()
+    # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
+    # #pp.pprint(Sample)
+    # Sample["ReducedData"]= CorrectUPDGains(Sample)
+    # Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+    # #pp.pprint(Sample["ReducedData"])
+    # PlotResults(Sample)
 
   
     
