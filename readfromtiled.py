@@ -108,14 +108,18 @@ def FindLastScanData(plan_name,NumScans=10):
 hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
     )
     #print(f"{uri=}")
-    r = requests.get(uri).json()
-
-    #print(f'Search of {catalog=} has {len(r["data"])} runs.')
-    #print_results_summary(r)
-    # this is now a list of Flyscan data sets
-    ScanList = convert_results(r)
-    #print(ScanList)
-    return ScanList
+    try:
+        r = requests.get(uri).json()
+        #print(f'Search of {catalog=} has {len(r["data"])} runs.')
+        #print_results_summary(r)
+        # this is now a list of Flyscan data sets
+        ScanList = convert_results(r)
+        #print(ScanList)
+        return ScanList
+    except: 
+        # url communication failed, happens and shoudl not crash anything.
+        # this is workaround. 
+        return []
 
 
 
