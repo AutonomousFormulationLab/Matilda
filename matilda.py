@@ -94,6 +94,7 @@ def GetListOfScans(plan_name):
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         # Place the code block you want to execute here
         print("Executing code on usaxscontrol.xray.aps.anl.gov")
+        logging.info('Executing code on usaxscontrol.xray.aps.anl.gov')
         return FindLastScanData(plan_name,10)
     else:
         if plan_name == 'SAXS':

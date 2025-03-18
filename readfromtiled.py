@@ -22,6 +22,8 @@ import requests
 import json
 import datetime
 import socket
+import logging
+
 
 
 def iso_to_ts(isotime):
@@ -115,10 +117,13 @@ hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
         # this is now a list of Flyscan data sets
         ScanList = convert_results(r)
         #print(ScanList)
+        logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
         return ScanList
     except: 
         # url communication failed, happens and shoudl not crash anything.
-        # this is workaround. 
+        # this is workaround.   
+        logging.error('Could not get data from tiled server at  usaxscontrol.xray.aps.anl.gov')
+        logging.error(f"Failed {uri=}")
         return []
 
 
