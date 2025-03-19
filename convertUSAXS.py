@@ -334,46 +334,46 @@ def PlotResults(data_dict):
 def reduceFlyscanToQR(path, filename):
     # Open the HDF5 file in read/write mode
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
-        # # Check if the group 'root/displayData' exists
-        # if 'root/displayData' in hdf_file:
-        #     print("Group 'root/displayData' already exists.")
-        #     # Delete the group
-        #     #del hdf_file['root/displayData']
-        #     #print("Deleted existing group 'root/displayData'.") 
-        #     #label = data_dict["RawData"]["Filename"]
-        #     #Q_array = data_dict["ReducedData"]["Q_array"]
-        #     #UPD = data_dict["ReducedData"]["UPD"]
-        #     group = hdf_file['root/displayData']
-        #     Sample = {key: group[key][()] for key in group.keys()}
-        #     print("Loaded dictionary:")
-        #     print(Sample)
-        #     return Sample
-        # else:
+            # Check if the group 'DisplayData' exists
+            #if 'DisplayData' in hdf_file:
+            #    print("Group 'root/displayData' already exists.")
+            #     # Delete the group
+            #     #del hdf_file['root/displayData']
+            #     #print("Deleted existing group 'root/displayData'.") 
+            #     #label = data_dict["RawData"]["Filename"]
+            #     #Q_array = data_dict["ReducedData"]["Q_array"]
+            #     #UPD = data_dict["ReducedData"]["UPD"]
+            #     group = hdf_file['root/displayData']
+            #     Sample = {key: group[key][()] for key in group.keys()}
+            #     print("Loaded dictionary:")
+            #     print(Sample)
+            #     return Sample
+            # else:
         Sample = dict()
         Sample["RawData"]=ImportFlyscan(path, filename)
-        #pp.pprint(Sample)
+            #pp.pprint(Sample)
         Sample["ReducedData"]= CorrectUPDGains(Sample)
         Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-        #pp.pprint(Sample["ReducedData"])
-        #PlotResults(Sample)
-        # Create the group and dataset for the new data
-        # newData=dict()
-        # newData["RawData"]={"Filename": filename}
-        # newData["ReducedData"]={"Q_array":Sample["ReducedData"]["Q_array"],
-        #                         "UPD":Sample["ReducedData"]["UPD"],}
-        # group = hdf_file.require_group('root')
-        # group = hdf_file.require_group('displayData')
-        # # Store each key-value pair as a dataset
-        # for key, value in newData.items():
-        #     # Convert value to a numpy array if it's not already
-        #     if not isinstance(value, np.ndarray):
-        #         value = np.array(value)
-        #     # Create or overwrite the dataset
-        #     if key in group:
-        #         del group[key]  # Delete existing dataset if it exists
-        #     group.create_dataset(key, data=value)
+            #pp.pprint(Sample["ReducedData"])
+            #PlotResults(Sample)
+            # Create the group and dataset for the new data
+            # newData=dict()
+            # newData["RawData"]={"Filename": filename}
+            # newData["ReducedData"]={"Q_array":Sample["ReducedData"]["Q_array"],
+            #                         "UPD":Sample["ReducedData"]["UPD"],}
+            # group = hdf_file.require_group('root')
+            # group = hdf_file.require_group('displayData')
+            # # Store each key-value pair as a dataset
+            # for key, value in newData.items():
+            #     # Convert value to a numpy array if it's not already
+            #     if not isinstance(value, np.ndarray):
+            #         value = np.array(value)
+            #     # Create or overwrite the dataset
+            #     if key in group:
+            #         del group[key]  # Delete existing dataset if it exists
+            #     group.create_dataset(key, data=value)
 
-        # print("Appended new data to 'root/displayData'.")
+            # print("Appended new data to 'root/displayData'.")
         return Sample
 
 
