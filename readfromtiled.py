@@ -73,7 +73,8 @@ def convert_results(r):
         hdf5_file = md["hdf5_file"]
         hdf5_path = md["hdf5_path"]
         #print(f" path: {hdf5_path=} {hdf5_file=}")
-        OutputList.append([hdf5_path,hdf5_file])
+        if hdf5_file is not None:
+            OutputList.append([hdf5_path,hdf5_file])
     return OutputList
         
 #print(f'Search of {catalog=} has {len(r["data"])} runs.')
@@ -119,6 +120,7 @@ def FindLastScanData(plan_name,NumScans=10):
         ScanList = convert_results(r)
         #print(ScanList)
         logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
+        logging.info(f"list of scans:{ScanList}")
         return ScanList
     except: 
         # url communication failed, happens and shoudl not crash anything.
