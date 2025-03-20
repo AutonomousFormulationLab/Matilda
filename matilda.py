@@ -93,8 +93,8 @@ def GetListOfScans(plan_name):
     # Check if the current machine is 'usaxscontrol.xray.aps.anl.gov'
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         # Place the code block you want to execute here
-        print("Executing code on usaxscontrol.xray.aps.anl.gov")
-        logging.info('Executing code on usaxscontrol.xray.aps.anl.gov')
+        #print("Executing code on usaxscontrol.xray.aps.anl.gov")
+        #logging.info('Executing code on usaxscontrol.xray.aps.anl.gov')
         return FindLastScanData(plan_name,10)
     else:
         if plan_name == 'SAXS':
@@ -257,7 +257,7 @@ if __name__ == "__main__":
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
             ListOfresults = processFlyscans(ListOfScans)
-            logging.info(f'Gto list : {ListOfScans}')
+            logging.info(f'Got list : {ListOfScans}')
             plotUSAXSResults(ListOfresults,isFlyscan=True)
             logging.info('Processing the step scan')
             #print("Processing the Stepscans")
