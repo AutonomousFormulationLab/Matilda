@@ -99,9 +99,8 @@ def FindLastScanData(plan_name,NumScans=10):
         "/api/v1/search"
         f"/{catalog}"
         f"?page[limit]={NumScans}"                                                  # 0: all matching, 10 is 10 scans. Must be >0 value
-        #"&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
-        #f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-        f'&filter=plan_name:"{plan_name}"'                                   # 2025-03-19 AI suggestion: filter by plan_name value
+        "&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
+        f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
         #f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
         #f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
         #f"&filter[time_range][condition][timezone]={tz}"                    # time range
@@ -111,6 +110,8 @@ def FindLastScanData(plan_name,NumScans=10):
         "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
         )
+    logging.info(f"{uri=}")
+
     #print(f"{uri=}")
     try:
         r = requests.get(uri).json()
