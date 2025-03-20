@@ -120,7 +120,7 @@ def FindLastScanData(plan_name,NumScans=10):
         ScanList = convert_results(r)
         #print(ScanList)
         logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
-        logging.info(f"list of scans:{ScanList}")
+        logging.info(f"Plan name: {plan_name}, list of scans:{ScanList}")
         return ScanList
     except: 
         # url communication failed, happens and shoudl not crash anything.

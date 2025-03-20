@@ -10,6 +10,8 @@ from supportFunctions import read_group_to_dict
 import pprint as pp
 import os
 import tifffile as tiff
+import logging
+
 
 # Load your 2D image data
 # For this example, let's assume you have a NumPy array `image_data` representing your detector image
@@ -21,6 +23,7 @@ def ImportAndReduceAD(path, filename):
     #with h5py.File(path+"/"+filename, 'r') as file:
     with h5py.File(path+'/'+filename, 'r') as file:
         #read various data sets
+        logging.info(f"Read file :{filename}")
         dataset = file['/entry/data/data'] 
         my2DData = np.array(dataset)
         #metadata
@@ -29,6 +32,7 @@ def ImportAndReduceAD(path, filename):
         #metadata
         metadata_group = file['/entry/Metadata']
         metadata_dict = read_group_to_dict(metadata_group)    
+        logging.info(f"Metadata : {metadata_group}")
         #pp.pprint(metadata_dict)
         # wavelength, convert to m
         wavelength = instrument_dict["monochromator"]["wavelength"]* 1e-10 
@@ -38,6 +42,7 @@ def ImportAndReduceAD(path, filename):
         # detector_distance, convert to m
         detector_distance = instrument_dict["detector"]["distance"]* 1e-3 
         # poni1, point of intercept. 
+        logging.info(f"Read metadata")
         if "pin_ccd_tilt_x" in metadata_dict:
             usingWAXS=0
             BCY = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
@@ -54,6 +59,8 @@ def ImportAndReduceAD(path, filename):
             BCX = BCX * pixel_size1 
             rotX = metadata_dict["waxs_ccd_tilt_x"]*np.pi/180
             rotY = metadata_dict["waxs_ccd_tilt_y"]*np.pi/180     
+
+        logging.info(f"Finished reading metadata")
 
     # now we need to do correction on geometry. 
     # Nika rotates the detector around the beam center while pyFAI around sample
@@ -105,6 +112,7 @@ def ImportAndReduceAD(path, filename):
         # Set rows 192 to 195 to 1
         mask[:, 242:245] = 1
 
+    logging.info(f"Finished creating mask")
 
     # Define your detector geometry
     # You need to specify parameters like the detector distance, pixel size, and wavelength
@@ -123,6 +131,8 @@ def ImportAndReduceAD(path, filename):
     npt = max(my2DData.shape)
     #npt = 1000  # Number of bins
     q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
+    logging.info(f"Finished 2d to 1D conversion")
+
     result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
     #pp.pprint(result)
     return result

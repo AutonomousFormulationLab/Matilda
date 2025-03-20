@@ -72,7 +72,7 @@ BeruskaListOfWAXSScans = [['/home/parallels/Documents/02_21_Megan/02_21_Megan_wa
 handler = RotatingFileHandler('matilda.log', maxBytes=200000, backupCount=1)
 logging.basicConfig(
     handlers=[handler],
-    level=logging.DEBUG,        # Set the logging level
+    level=logging.INFO,        # Set the logging level
     format='%(asctime)s - %(levelname)s - %(message)s',  # Format of the log messages
     datefmt='%Y-%m-%d %H:%M:%S'  # Date format
 )
@@ -116,7 +116,10 @@ def processFlyscans(ListOfScans):
         path = scan[0]
         filename = scan[1]
         #print(f"Processing file: {filename}")
-        results.append(reduceFlyscanToQR(path, filename))
+        try:
+            results.append(reduceFlyscanToQR(path, filename))
+        except:
+            pass
     #print("Done processing the Flyscans")
     return results
 
@@ -127,7 +130,10 @@ def processStepscans(ListOfScans):
         path = scan[0]
         filename = scan[1]
         #print(f"Processing file: {filename}")
-        results.append(reduceStepScanToQR(path, filename))
+        try:
+            results.append(reduceStepScanToQR(path, filename))
+        except:
+            pass
     #print("Done processing the Step scans")
     return results
 
@@ -138,7 +144,10 @@ def processSASdata(ListOfScans):
         path = scan[0]
         filename = scan[1]
         #print(f"Processing file: {filename}")
-        results.append(reduceADToQR(path, filename))
+        try:
+            results.append(reduceADToQR(path, filename))
+        except:
+            pass
     #print("Done processing the Flyscans")
     return results
 
@@ -248,6 +257,7 @@ if __name__ == "__main__":
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
             ListOfresults = processFlyscans(ListOfScans)
+            logging.info(f'Gto list : {ListOfScans}')
             plotUSAXSResults(ListOfresults,isFlyscan=True)
             logging.info('Processing the step scan')
             #print("Processing the Stepscans")
