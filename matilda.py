@@ -194,6 +194,7 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
         else:
             plt.savefig('stepusaxs.jpg', format='jpg', dpi=300) # this step scan
     #plt.show()
+    plt.close()
 
 def plotSWAXSResults(ListOfresults, isSAXS = True):  
     # Number of data sets
@@ -241,6 +242,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         else:
             plt.savefig('waxs.jpg', format='jpg', dpi=300)
     #plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
