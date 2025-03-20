@@ -44,7 +44,7 @@ def ImportFlyscan(path, filename):
         #UPD
         dataset = file['/entry/flyScan/mca3'] 
         UPD_array = np.ravel(np.array(dataset)) [-num_elements:]
-        #Arrays for gain changes
+        #Arrays for UPD gain changes
         dataset = file['/entry/flyScan/changes_DDPCA300_ampGain'] 
         AmpGain = np.ravel(np.array(dataset))
         dataset = file['/entry/flyScan/changes_DDPCA300_ampReqGain'] 
@@ -153,7 +153,7 @@ def CorrectUPDGainsStep(data_dict):
     return result
 
 
-def CorrectUPDGains(data_dict):
+def CorrectUPDGainsFly(data_dict):
     # create the gains array and corrects UPD for it.
     # Masks deadtimes and raneg changes
     # get the needed data from dictionary
@@ -169,7 +169,8 @@ def CorrectUPDGains(data_dict):
 
     
     # Create Gains arrays - one for requested and one for real
-    UPD_array_corr = UPD_array/Monitor
+    I0AmpGain = metadata_dict["I0AmpGain"]
+    UPD_array_corr = UPD_array/(Monitor/I0AmpGain)
     num_elements = UPD_array.size 
     AmpGain_array = np.full(num_elements, AmpGain[len(AmpGain)-1])
     AmpGainReq_array = np.full(num_elements,AmpGain[len(AmpReqGain)-1])
@@ -352,7 +353,7 @@ def reduceFlyscanToQR(path, filename):
         Sample = dict()
         Sample["RawData"]=ImportFlyscan(path, filename)
             #pp.pprint(Sample)
-        Sample["ReducedData"]= CorrectUPDGains(Sample)
+        Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
         Sample["ReducedData"].update(BeamCenterCorrection(Sample))
             #pp.pprint(Sample["ReducedData"])
             #PlotResults(Sample)
@@ -401,7 +402,7 @@ if __name__ == "__main__":
     # Sample = dict()
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
-    # Sample["ReducedData"]= CorrectUPDGains(Sample)
+    # Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
     # Sample["ReducedData"].update(BeamCenterCorrection(Sample))
     # #pp.pprint(Sample["ReducedData"])
     # PlotResults(Sample)
