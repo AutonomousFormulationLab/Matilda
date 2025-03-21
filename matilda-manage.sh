@@ -16,19 +16,19 @@ EXECUTABLE_SCRIPT="${PROJECT_DIR}/in-screen.sh"
 STARTER_SCRIPT=st-matilda.sh
 RETVAL=0
 SLEEP_DELAY=1.5  # wait for process, sometimes
-TILED_CONDA_ENV=matilda
+MATILDA_CONDA_ENV=matilda
 
 
 
 activate_conda(){
     if [ "${CONDA_EXE}" == "" ]; then
-        echo "Need CONDA_EXE defined to activate '${TILED_CONDA_ENV}' environment."
+        echo "Need CONDA_EXE defined to activate '${MATILDA_CONDA_ENV}' environment."
         echo "That is defined by activating *any* conda environment."
         exit 1
     fi
     CONDA_ROOT=$(dirname $(dirname $(readlink -f "${CONDA_EXE}")))
     source "${CONDA_ROOT}/etc/profile.d/conda.sh"
-    conda activate "${TILED_CONDA_ENV}"
+    conda activate "${MATILDA_CONDA_ENV}"
 }
 
 
@@ -46,10 +46,10 @@ function pid_is_running(){
 	else
 		RESPONSE=$(ps -p ${PID} -o comm=)
 		if [ "${RESPONSE}" == "${STARTER_SCRIPT}" ]; then
-			# PID matches the tiled server profile
+			# PID matches the Matilda server profile
 			RETVAL=0
 		else
-			# PID is not tiled server
+			# PID is not Matilda server
 			RETVAL=1
 		fi
 	fi
@@ -107,7 +107,7 @@ status(){
 checkup(){
     # 'crontab -e` to add entries for automated (re)start
     #=====================
-    # call periodically (every 5 minutes) to see if tiled server is running
+    # call periodically (every 5 minutes) to see if Matilda server is running
     #=====================
     #	     field	    allowed values
     #	   -----	  --------------
