@@ -21,6 +21,7 @@
 import requests
 import json
 import datetime
+import time
 import socket
 import logging
 
@@ -89,8 +90,8 @@ def FindLastScanData(plan_name,NumScans=10):
     #print(f"Search for {plan_name=}")
     # Find all runs in a catalog between these two ISO8601 dates.
     # TODO - manage the times by rembering last call and only asking for data since last time
-    #start_time = "2025-02-15"
-    #end_time = "2025-02-25"
+    #start_time = time.time()    #current time in seconds
+    end_time = time.time()
     tz = "US/Central"
 
     #this filters for specific time AND for specific plan_name
@@ -101,10 +102,10 @@ def FindLastScanData(plan_name,NumScans=10):
         f"?page[limit]={NumScans}"                                                  # 0: all matching, 10 is 10 scans. Must be >0 value
         "&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-        #f"&filter[time_range][condition][since]={iso_to_ts(start_time)}"    # time range
-        #f"&filter[time_range][condition][until]={iso_to_ts(end_time)}"      # time range
-        #f"&filter[time_range][condition][timezone]={tz}"                    # time range
-        "&sort=-time"                                                        # sort by time, -time gives last scans first
+        f"&filter[time_range][condition][since]={(end_time-86400)}"         # time range, start time - 24 hours from now
+        f"&filter[time_range][condition][until]={end_time}"                 # time range, current time in seconds
+        f"&filter[time_range][condition][timezone]={tz}"                    # time range
+        "&sort=-time"                                                       # sort by time, -time gives last scans first
         "&fields=metadata"                                                  # return metadata
         "&omit_links=true"                                                  # no links
         "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
