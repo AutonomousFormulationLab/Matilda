@@ -13,6 +13,7 @@ MANAGE="${PROJECT_DIR}/matilda-manage.sh"
 LOGFILE="${PROJECT_DIR}/matilda-manage.log"
 PIDFILE="${PROJECT_DIR}/matilda-manage.pid"
 EXECUTABLE_SCRIPT="${PROJECT_DIR}/in-screen.sh"
+# STARTER_SCRIPT is limited to 15 characters as that is what the script in check_pid_is_running() gets from the check. 
 STARTER_SCRIPT=st-matilda.sh
 RETVAL=0
 SLEEP_DELAY=1.5  # wait for process, sometimes
