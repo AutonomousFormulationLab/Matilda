@@ -1,4 +1,6 @@
 #!/bin/bash
+echo $(CONDA_PREFIX)
+exit 0
 
 # to run use alias: screen -dmS matilda bash -c './matilda.sh'
 # Get the directory of the current script
@@ -10,7 +12,7 @@ cd "$SCRIPT_DIR"
 #MY_DIR=$(realpath "$(dirname $0)")
 #LOG_FILE="${MY_DIR}/logfile.txt"
 
-conda init
+
 source ${CONDA_PREFIX}/etc/profile.d/conda.sh
 CONDA_ENV=matilda
 conda activate "${CONDA_ENV}"
