@@ -27,7 +27,7 @@ activate_conda(){
         exit 1
     fi
     CONDA_ROOT=$(dirname $(dirname $(readlink -f "${CONDA_EXE}")))
-    source "${CONDA_ROOT}/etc/profile.d/conda.sh"
+    source "${CONDA_ROOT:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh"
     conda activate "${MATILDA_CONDA_ENV}"
 }
 
