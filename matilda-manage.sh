@@ -62,7 +62,7 @@ function pid_is_running(){
 
 
 start(){
-    activate_conda
+    #activate_conda # done by st-matilda.sh script anyway
     cd "${PROJECT_DIR}"
     "${EXECUTABLE_SCRIPT}" 2>&1 >> "${LOGFILE}" &
     sleep "${SLEEP_DELAY}"
