@@ -1,5 +1,5 @@
 #!/bin/bash
-echo $(CONDA_PREFIX:-/APSshare/miniconda/x86_64)
+echo $(CONDA_PREFIX:-"/APSshare/miniconda/x86_64")
 exit 0
 
 
