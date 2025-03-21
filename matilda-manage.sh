@@ -26,10 +26,13 @@ activate_conda(){
         echo "That is defined by activating *any* conda environment."
         exit 1
     fi
-    CONDA_ROOT=$(dirname $(dirname $(readlink -f "${CONDA_EXE}")))
     source ${CONDA_PREFIX:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh
+    CONDA_ENV=matilda
+    conda activate "${CONDA_ENV}"      
+    #CONDA_ROOT=$(dirname $(dirname $(readlink -f "${CONDA_EXE}")))  
+    #source ${CONDA_PREFIX:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh
     #source "${CONDA_ROOT:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh"
-    conda activate "${MATILDA_CONDA_ENV}"
+    #conda activate "${MATILDA_CONDA_ENV}"
 }
 
 
