@@ -1,6 +1,7 @@
 #!/bin/bash
-echo $(CONDA_PREFIX)
+echo $(CONDA_PREFIX:-/APSshare/miniconda/x86_64)
 exit 0
+
 
 # to run use alias: screen -dmS matilda bash -c './matilda.sh'
 # Get the directory of the current script
