@@ -1,7 +1,14 @@
 # Matilda
 Live data processing package for USAXS/SAXS/WAXS instrument.
 
-Not even started properly, yet.
+**Existing features**
+- Start automatically using cron on usaxscontrol. This is bit challenge due to conda configruation, but works now. 
+- Reduce and normalize data collected using area detectors.
+- Apply default masks.
+- Reduce and normalize data collected using flyscanning.
+- Reduce and normalize data collected using stepscanning.
+- Plot all data
+- Save them as needed for web page generation. This is done by livedata code for now. 
 
 **Planned features:**
 For Bonse-Hart USAXS (https://usaxs.xray.aps.anl.gov) be able to reduce data collected using both Flyscanning and Stepscanning. For SAXS and WAXS using area detectors do the same while applying default masks. 

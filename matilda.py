@@ -14,6 +14,7 @@ import socket
 import logging
 from logging.handlers import RotatingFileHandler
 import time
+import datetime
 
 
 # list of files will be generated as a list of lists
@@ -92,9 +93,13 @@ def GetListOfScans(plan_name):
 
     # Check if the current machine is 'usaxscontrol.xray.aps.anl.gov'
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
-        # Place the code block you want to execute here
-        #print("Executing code on usaxscontrol.xray.aps.anl.gov")
-        #logging.info('Executing code on usaxscontrol.xray.aps.anl.gov')
+        # print("Executing code on usaxscontrol.xray.aps.anl.gov")
+        # logging.info('Executing code on usaxscontrol.xray.aps.anl.gov')
+        #these are calls to get last 10 scans for Flyscan, step scan, SAXS, and WAXS
+        #print (FindLastScanData("Flyscan",10))
+        #print (FindLastScanData("uascan",10))
+        #print (FindLastScanData("SAXS",10))
+        #print (FindLastScanData("WAXS",10))
         return FindLastScanData(plan_name,10)
     else:
         if plan_name == 'SAXS':
@@ -246,39 +251,49 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
 
 
 if __name__ == "__main__":
-    #these are calls to get last 10 scans for Flyscan, SAXS and WAXS
-    #print (FindLastScanData("Flyscan",10))
-    #print (FindLastScanData("uascan",10))
-    #print (FindLastScanData("SAXS",10))
-    #print (FindLastScanData("WAXS",10))
     # this has been shown to work
     try:
         while True:
-            print("Processing the data again")
+            logging.info("New round of processing started at : ", datetime.datetime.now()) 
             logging.info('Processing the Flyscans')
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
             ListOfresults = processFlyscans(ListOfScans)
             logging.info(f'Got list : {ListOfScans}')
-            plotUSAXSResults(ListOfresults,isFlyscan=True)
-            logging.info('Processing the step scan')
+            if len(ListOfresults) > 0:
+                plotUSAXSResults(ListOfresults,isFlyscan=True)
+            else:
+                logging.info('No Flyscan data found')
+
+            logging.info('Processing the step scans')
             #print("Processing the Stepscans")
             ListOfScans = GetListOfScans("uascan")
             ListOfresults = processStepscans(ListOfScans)
-            plotUSAXSResults(ListOfresults,isFlyscan=False)
+            if len(ListOfresults) > 0:
+                plotUSAXSResults(ListOfresults,isFlyscan=False)
+            else:
+                logging.info('No Step scan data found') 
+
             #print("Done processing the Step scans")
             #print("Processing the SAXS scans")
             logging.info('Processing the SAXS')
             ListOfScans = GetListOfScans("SAXS")
             ListOfresults = processSASdata(ListOfScans)
-            plotSWAXSResults(ListOfresults,isSAXS = True)
-            #print("Done processing the SAXS scans")           
+            if len(ListOfresults) > 0:
+                plotSWAXSResults(ListOfresults,isSAXS = True)
+            else:
+                logging.info('No SAXS data found')
+               
             #print("Processing the WAXS scans")
             logging.info('Processing the WAXS')
             ListOfScans = GetListOfScans("WAXS")
             ListOfresults = processSASdata(ListOfScans)
-            plotSWAXSResults(ListOfresults, isSAXS = False)
-            #print("Done processing the WAXS scans")
+            if len(ListOfresults) > 0:
+                plotSWAXSResults(ListOfresults, isSAXS = False)
+            else:
+                logging.info('No WAXS data found')
+
+            # wait for more data, 30s seems reasonable
             time.sleep(30)
     except KeyboardInterrupt:
         print("Keyboard interrupt")

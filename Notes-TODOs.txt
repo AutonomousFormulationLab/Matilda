@@ -4,10 +4,8 @@ Notes and TODOs
 TODOs
 Normalize flyscan data
 Rebin data to lower resolution
-
-
-SAXS
-WAXS
+Save data into Nexus format
+Read data if present, reduce if not present. 
 
 
 Code to read and write NXcanSAS data is here:
