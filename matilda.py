@@ -164,11 +164,8 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
-    # Get the current default font size
-    default_font_size = plt.rcParams['font.size']
-
-    # Set the font size to 80% of the default
-    plt.rcParams['font.size'] = default_font_size * 0.8
+    # Set the font size to specific size
+    plt.rcParams['font.size'] = 12
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
@@ -211,11 +208,8 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
-    # Get the current default font size
-    default_font_size = plt.rcParams['font.size']
-
-    # Set the font size to 80% of the default
-    plt.rcParams['font.size'] = default_font_size * 0.8
+    # Set the font size to specific size
+    plt.rcParams['font.size'] = 12 
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
