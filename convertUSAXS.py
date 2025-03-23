@@ -132,7 +132,7 @@ def ImportStepScan(path, filename):
 def CorrectUPDGainsStep(data_dict):
     # multiply UPD by gain and divide by monitor
     # get the needed data from dictionary
-    AmpGain = data_dict["RawData"]["AmpReqGain"]
+    AmpGain = data_dict["RawData"]["AmpGain"]
     UPD_array = data_dict["RawData"]["UPD_array"]
     Monitor = data_dict["RawData"]["Monitor"]
     I0gain = data_dict["RawData"]["I0gain"]
@@ -147,10 +147,9 @@ def CorrectUPDGainsStep(data_dict):
     UPD_temp[change_indices] = np.nan
     # now locate location of max value in UPD_array
     max_index = np.nanargmax(UPD_temp)
-    print(max_index)
     # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
-    # this removes the range changes only to before the peak location
-    change_indices = change_indices[change_indices < max_index]
+    # this removes the range changes only to before the peak location, does nto seem to work, really
+    #change_indices = change_indices[change_indices < max_index]
     # Create a copy of the array to avoid modifying the original
     AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
     # Set the point before each range change to NaN
