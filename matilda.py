@@ -164,9 +164,11 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
-    # Plot each x-y pair with a different color and label
-    #for (label, (x, y)), color in zip(ListOfresults.items(), colors):
-    #    plt.plot(x, y, color=color, label=label)
+    # Get the current default font size
+    default_font_size = plt.rcParams['font.size']
+
+    # Set the font size to 80% of the default
+    plt.rcParams['font.size'] = default_font_size * 0.8
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
@@ -208,6 +210,13 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
     cmap = plt.get_cmap('viridis')
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
+
+    # Get the current default font size
+    default_font_size = plt.rcParams['font.size']
+
+    # Set the font size to 80% of the default
+    plt.rcParams['font.size'] = default_font_size * 0.8
+
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
     for i, color in zip(range(len(ListOfresults)),colors):
