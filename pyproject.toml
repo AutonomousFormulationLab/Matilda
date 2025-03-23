@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+
+[project]
+name = "Matilda"
+dynamic = ["version"]
+description = "Live data processing package for USAXS/SAXS/WAXS instrument"
+readme = "README.md"
+authors = [
+    { name = "Jan Ilavsky", email = "ilavsky@anl.gov" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "numpy",
+    "xarray",
+    "tqdm",
+    "netcdf4",
+    "pandas",
+    "scipy",
+    "h5py",
+    "pyfai",
+    "requests",
+    "tifffile",
+    "pip",
+    "matplotlib"
+]
+
