@@ -140,17 +140,19 @@ def CorrectUPDGainsStep(data_dict):
     # Find indices where the change occurs
     change_indices = np.where(np.diff(AmpGain) != 0)[0]
     change_indices = change_indices +1
-    # fix raneg cahnges
+    # fix range changes
     #Correct UPD for gains so we can find max value loaction
     UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
     # now locate location of max value in UPD_array
-    max_index = np.argmax(UPD_temp)
-    # we need to limit change_indices to less than max_index, this removes the range change only to before the peak location
+    max_index = np.argmax(UPD_temp, axis=0)
+    # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
+    # this removes the range changes only to before the peak location
     change_indices = change_indices[change_indices < max_index]
     # Create a copy of the array to avoid modifying the original
     AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
     # Set the point before each range change to NaN
-    AmpGain_new[change_indices] = np.nan   
+    if len(change_indices) > 0:
+        AmpGain_new[change_indices] = np.nan
     #Correct UPD for gains with points we  want removed set to Nan
     UPD_corrected = (UPD_array*I0gain)/(AmpGain_new*Monitor)
     result = {"UPD":UPD_corrected}
