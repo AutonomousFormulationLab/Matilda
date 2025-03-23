@@ -85,6 +85,12 @@ logging.basicConfig(
 # logging.error('This is an error message')
 # logging.critical('This is a critical message')
 
+
+# define any globals here
+default_plt_font_size = 9
+
+
+
 def GetListOfScans(plan_name):
     #Get the hostname of the current machine
     current_hostname = socket.gethostname()
@@ -165,7 +171,7 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
     # Set the font size to specific size
-    plt.rcParams['font.size'] = 12
+    plt.rcParams['font.size'] = default_plt_font_size
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
@@ -209,7 +215,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
     # Set the font size to specific size
-    plt.rcParams['font.size'] = 12 
+    plt.rcParams['font.size'] = default_plt_font_size 
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
