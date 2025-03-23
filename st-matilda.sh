@@ -11,7 +11,8 @@ cd "$SCRIPT_DIR"
 #LOG_FILE="${MY_DIR}/logfile.txt"
 
 
-source ${CONDA_PREFIX:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh
+#source ${CONDA_PREFIX:-"/APSshare/miniconda/x86_64"}/etc/profile.d/conda.sh
+source /APSshare/miniconda/x86_64/etc/profile.d/conda.sh
 CONDA_ENV=matilda
 conda activate "${CONDA_ENV}"
 
