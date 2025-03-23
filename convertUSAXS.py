@@ -1,4 +1,5 @@
-#this file will import data from numpy flyscan file
+# this file will import data from flyscan or step scan hdf5 file
+# it will convert to QR and optionally plot the results
 
 
 import h5py
@@ -99,8 +100,8 @@ def ImportStepScan(path, filename):
         #Arrays for gain changes
         dataset = file['/entry/data/upd_autorange_controls_gain'] 
         AmpGain = np.ravel(np.array(dataset))
-        #dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
-        #AmpReqGain = np.ravel(np.array(dataset))       #this contains only 0 values, useless... 
+            #dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
+            #AmpReqGain = np.ravel(np.array(dataset))       #this contains only 0 values, useless... 
         #metadata
         metadata_group = file['/entry/instrument/bluesky/metadata']
         metadata_dict = read_group_to_dict(metadata_group)     
@@ -130,46 +131,48 @@ def ImportStepScan(path, filename):
     return data_dict
     
 def CorrectUPDGainsStep(data_dict):
-    # multiply UPD by gain and divide by monitor
-    # get the needed data from dictionary
+        # here we will multiply UPD by gain and divide by monitor corrected for its gain.
+        # get the needed data from dictionary
     AmpGain = data_dict["RawData"]["AmpGain"]
     UPD_array = data_dict["RawData"]["UPD_array"]
     Monitor = data_dict["RawData"]["Monitor"]
     I0gain = data_dict["RawData"]["I0gain"]
-    # for some  reason, the AmpGain is shifted by one value so we need to duplicat efirst value and remove end value. 
+        # for some  reason, the AmpGain is shifted by one value so we need to duplicate the first value and remove end value. 
     first_value = AmpGain[0]
     AmpGain = np.insert(AmpGain, 0, first_value)
     AmpGain = AmpGain[:-1]
-    # change gain maiy not any mor ebe necessary... 
-    # # need to remove points where gain changes
-    # # Find indices where the change occurs
-    # change_indices = np.where(np.diff(AmpGain) != 0)[0]
-    # change_indices = change_indices +1
-    # # fix range changes
-    # #Correct UPD for gains so we can find max value loaction
-    # UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
-    # #remove renage chanegs on thsi array
-    # UPD_temp[change_indices] = np.nan
-    # # now locate location of max value in UPD_array
-    # max_index = np.nanargmax(UPD_temp)
-    # # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
-    # # this removes the range changes only to before the peak location, does nto seem to work, really
-    # #change_indices = change_indices[change_indices < max_index]
-    # # Create a copy of the array to avoid modifying the original
-    # AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
-    # # Set the point before each range change to NaN
-    # if len(change_indices) > 0:
-    #     AmpGain_new[change_indices] = np.nan
-    # #Correct UPD for gains with points we  want removed set to Nan
+                # change gain masking may not any be necessary... 
+                # # need to remove points where gain changes
+                # # Find indices where the change occurs
+                # change_indices = np.where(np.diff(AmpGain) != 0)[0]
+                # change_indices = change_indices +1
+                # # fix range changes
+                # #Correct UPD for gains so we can find max value loaction
+                # UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
+                # #remove renage chanegs on thsi array
+                # UPD_temp[change_indices] = np.nan
+                # # now locate location of max value in UPD_array
+                # max_index = np.nanargmax(UPD_temp)
+                # # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
+                # # this removes the range changes only to before the peak location, does nto seem to work, really
+                # #change_indices = change_indices[change_indices < max_index]
+                # # Create a copy of the array to avoid modifying the original
+                # AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
+                # # Set the point before each range change to NaN
+                # if len(change_indices) > 0:
+                #     AmpGain_new[change_indices] = np.nan
+                #Correct UPD for gains with points we  want removed set to Nan
+
+        #Correct UPD for gains and monitor
     UPD_corrected = (UPD_array*I0gain)/(AmpGain*Monitor)
     result = {"UPD":UPD_corrected}
     return result
 
 
 def CorrectUPDGainsFly(data_dict):
-    # create the gains array and corrects UPD for it.
-    # Masks deadtimes and raneg changes
-    # get the needed data from dictionary
+        # create the gains array and corrects UPD for it.
+        # Masks deadtimes and range changes
+        # get the needed data from dictionary
     ARangles = data_dict["RawData"]["ARangles"]
     AmpGain = data_dict["RawData"]["AmpGain"]
     AmpReqGain = data_dict["RawData"]["AmpReqGain"]
@@ -181,14 +184,13 @@ def CorrectUPDGainsFly(data_dict):
     Monitor = data_dict["RawData"]["Monitor"]
 
     
-    # Create Gains arrays - one for requested and one for real
+        # Create Gains arrays - one for requested and one for real
     I0AmpGain = metadata_dict["I0AmpGain"]
-    UPD_array_corr = UPD_array/(Monitor/I0AmpGain)
     num_elements = UPD_array.size 
     AmpGain_array = np.full(num_elements, AmpGain[len(AmpGain)-1])
     AmpGainReq_array = np.full(num_elements,AmpGain[len(AmpReqGain)-1])
 
-    # Iterate over the Channel array to get index pairs
+        # Iterate over the Channel array to get index pairs
     for i in range(0, len(Channel)-2, 1):
         start_index = int(Channel[i])
         end_index = int(Channel[i + 1])
@@ -205,30 +207,30 @@ def CorrectUPDGainsFly(data_dict):
             AmpGain_array[start_index] = AmpGain[i]    
             AmpGainReq_array[start_index] = AmpReqGain[i]
 
-    # Create a new array res with the same shape as AmpGain_array, initialized with NaN
+        # Create a new array res with the same shape as AmpGain_array, initialized with NaN
     GainsIndx = np.full(AmpGain_array.shape, np.nan)
     Gains = np.full(AmpGain_array.shape, np.nan)
 
-    # Use a boolean mask to find where two arrays agree
+        # Use a boolean mask to find where two arrays agree
     mask = AmpGain_array == AmpGainReq_array
 
-    # Set the values in res where two agree
+        # Set the values in res where two agree
     GainsIndx[mask] = AmpGain_array[mask]
-    #set to Nan also points in channel array that are not in mask
+        #set to Nan also points in channel array that are not in mask
     for i in range(0, len(Channel)-2, 1):
         s = int(Channel[i])
         GainsIndx[s] = np.nan
 
-    #next, replace the values in Gains array with values looked up from metadata dictionary
-    #for now, lets look only for DDPCA300_gain+"gainNumber"
+        #next, replace the values in Gains array with values looked up from metadata dictionary
+        #for now, lets look only for DDPCA300_gain+"gainNumber"
     for i in range(0, len(GainsIndx)-1, 1):
         if np.isnan(GainsIndx[i]):
             continue
         gainName = 'DDPCA300_gain'+str(int(GainsIndx[i]))
         Gains[i] = metadata_dict[gainName]
 
-    #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
-    Frequency=1e6
+        #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
+    Frequency=1e6   #this is frequency of clock fed ito mca1
     TimeInSec = TimePerPoint/Frequency
     #print("Exp. time :", sum(TimeInSec))
     for i in range(0, len(Channel)-1, 1):
@@ -244,9 +246,9 @@ def CorrectUPDGainsFly(data_dict):
             #print("elapsed time is:",elapsed) 
             indx += 1
 
-    #Correct UPD for gains
-    UPD_corrected = (UPD_array_corr)/(Gains)     
-    #UPD_array_log=np.log(UPD_array)
+        #Correct UPD for gains and monitor counts and amplfiier gain. 
+    UPD_corrected = UPD_array/(Monitor/I0AmpGain)/(Gains)     
+    
     result = {"UPD":UPD_corrected}
     return result
 
@@ -256,55 +258,54 @@ def CorrectUPDGainsFly(data_dict):
 
 def BeamCenterCorrection(data_dict):
     # Find Peak center and create Q vector.
-    #RawData=data_dict["rawData"]
-    #ReducedData = data_dict["ReducedData"]
+        #RawData=data_dict["rawData"]
+        #ReducedData = data_dict["ReducedData"]
     ARangles = data_dict["RawData"]["ARangles"]
     instrument_dict = data_dict["RawData"]["instrument"]
     UPD_array = data_dict["ReducedData"]["UPD"]
-    #plt.figure(figsize=(6, 12))
-    #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
-    # Remove NaN values from both xdata and ydata
+        #plt.figure(figsize=(6, 12))
+        #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
+        # Remove NaN values from both xdata and ydata
     nan_mask = ~np.isnan(ARangles) & ~np.isnan(UPD_array)
     xdata_clean = ARangles[nan_mask]
     ydata_clean = UPD_array[nan_mask]
-    #plt.plot(xdata_clean, ydata_clean, marker='o', linestyle='-') 
-    # Find the threshold for the top 40% of UPD_array
+        #plt.plot(xdata_clean, ydata_clean, marker='o', linestyle='-') 
+        # Find the threshold for the top ~40% of UPD_array
     threshold = np.max(ydata_clean)/2.3
-    #pp.pprint(threshold)
-    #print(f"Threshold for the top 50% of UPD_array: {threshold}")
-    # Filter the data to only include the top 50%
+        #pp.pprint(threshold)
+        #print(f"Threshold for the top 40% of UPD_array: {threshold}")
+        # Filter the data to only include the top 40%
     mask = ydata_clean >= threshold
     xdata_filtered = xdata_clean[mask]
     ydata_filtered = ydata_clean[mask]
-    #plt.plot(xdata_filtered, ydata_filtered, marker='o', linestyle='-')
+        #plt.plot(xdata_filtered, ydata_filtered, marker='o', linestyle='-')
 
-    # Initial guess for the parameters: amplitude, mean, and standard deviation
+        # Initial guess for the parameters: amplitude, mean, and standard deviation
     initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
-    #print(initial_guess)
+        #print(initial_guess)
 
-    # Fit the Gaussian function to the filtered data
+        # Fit the Gaussian function to the filtered data
     popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
 
-    # Extract the fitted parameters
+        # Extract the fitted parameters
     amplitude, x0, sigma = popt
-    
-    #print(popt)
-    # Calculate the FWHM
+        #print(popt)
+        # Calculate the FWHM
     fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)
 
-    # Calculate the predicted y values using the fitted parameters
+        # Calculate the predicted y values using the fitted parameters
     y_pred = gaussian(xdata_filtered, *popt)
 
-    # Calculate the residuals
+        # Calculate the residuals
     residuals = ydata_filtered - y_pred
 
-    # Calculate the chi-square
-    # If you have measurement errors, replace 1 with the variance of ydata_filtered
+        # Calculate the chi-square
+        # If you have measurement errors, replace 1 with the variance of ydata_filtered
     chi_square = np.sum((residuals**2) / 1)
 
-    #Make wave vector
+        #Make wave vector
     Q_array = np.full(UPD_array.shape, 0)
-    #AR_center = metadata_dict["AR_center"]
+        #AR_center = metadata_dict["AR_center"]
     try:
         # Try to get the value using the first key
         wavelength = instrument_dict["monochromator"]["wavelength"]
@@ -314,9 +315,9 @@ def BeamCenterCorrection(data_dict):
         wavelength = instrument_dict["wavelength"]
 
     Q_array = -1*(4*np.pi*np.sin(np.radians(ARangles-x0)/2)/wavelength)
-    #Q_array = (4*np.pi*np.sin(np.radians(ARangles-x0)/2)/wavelength)
-    #Q_array_log = np.sign(Q_array)*np.log(np.abs(Q_array))
-    #pp.pprint(Q_array)
+        #Q_array = (4*np.pi*np.sin(np.radians(ARangles-x0)/2)/wavelength)
+        #Q_array_log = np.sign(Q_array)*np.log(np.abs(Q_array))
+        #pp.pprint(Q_array)
 
     results = {"Q_array":Q_array,
             "Chi-Square":chi_square,
@@ -328,11 +329,11 @@ def BeamCenterCorrection(data_dict):
 
 
 def PlotResults(data_dict):
-    # Find Peak center and create Q vector.
+        # Plot UPD vs Q.
     Q_array = data_dict["ReducedData"]["Q_array"]
     UPD = data_dict["ReducedData"]["UPD"]
     
-    # Plot ydata against xdata
+        # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
     plt.plot(Q_array, UPD, marker='o', linestyle='-')  # You can customize the marker and linestyle
     plt.title('Plot of UPD vs. Q')
@@ -398,8 +399,8 @@ def reduceStepScanToQR(path, filename):
         #pp.pprint(Sample)
         Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
         Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-        #pp.pprint(Sample["ReducedData"])
-        #PlotResults(Sample)
+            #pp.pprint(Sample["ReducedData"])
+            #PlotResults(Sample)
         return Sample
 
 
