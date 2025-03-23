@@ -85,6 +85,12 @@ logging.basicConfig(
 # logging.error('This is an error message')
 # logging.critical('This is a critical message')
 
+
+# define any globals here
+default_plt_font_size = 7
+
+
+
 def GetListOfScans(plan_name):
     #Get the hostname of the current machine
     current_hostname = socket.gethostname()
@@ -164,9 +170,8 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
 
-    # Plot each x-y pair with a different color and label
-    #for (label, (x, y)), color in zip(ListOfresults.items(), colors):
-    #    plt.plot(x, y, color=color, label=label)
+    # Set the font size to specific size
+    plt.rcParams['font.size'] = default_plt_font_size
 
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
@@ -208,6 +213,10 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
     cmap = plt.get_cmap('viridis')
     # Generate colors from the colormap
     colors = [cmap(i) for i in np.linspace(0, 1, num_data_sets)]
+
+    # Set the font size to specific size
+    plt.rcParams['font.size'] = default_plt_font_size 
+
     # Plot ydata against xdata
     plt.figure(figsize=(6, 6))
     for i, color in zip(range(len(ListOfresults)),colors):
@@ -254,7 +263,8 @@ if __name__ == "__main__":
     # this has been shown to work
     try:
         while True:
-            logging.info("New round of processing started at : ", datetime.datetime.now()) 
+            logging.info("New round of processing started at : %s", datetime.datetime.now()) 
+            #print("New round of processing started at : ", datetime.datetime.now()) 
             logging.info('Processing the Flyscans')
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
