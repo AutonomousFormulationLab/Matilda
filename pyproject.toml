@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
+
 dependencies = [
     "numpy",
     "xarray",
@@ -36,3 +37,5 @@ dependencies = [
     "matplotlib"
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = [ "." ]
