@@ -140,15 +140,19 @@ def CorrectUPDGainsStep(data_dict):
     # Find indices where the change occurs
     change_indices = np.where(np.diff(AmpGain) != 0)[0]
     change_indices = change_indices +1
+    # fix raneg cahnges
+    #Correct UPD for gains so we can find max value loaction
+    UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
+    # now locate location of max value in UPD_array
+    max_index = np.argmax(UPD_temp)
+    # we need to limit change_indices to less than max_index, this removes the range change only to before the peak location
+    change_indices = change_indices[change_indices < max_index]
     # Create a copy of the array to avoid modifying the original
-    AmpGain_new = AmpGain.astype(float)  # Ensure the array can hold NaN values
-    
-    # Set the point before each change to NaN
+    AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
+    # Set the point before each range change to NaN
     AmpGain_new[change_indices] = np.nan   
-    #Correct UPD for gains
+    #Correct UPD for gains with points we  want removed set to Nan
     UPD_corrected = (UPD_array*I0gain)/(AmpGain_new*Monitor)
-    #pp.pprint(UPD_corrected)     
-    #UPD_array_log=np.log(UPD_array)
     result = {"UPD":UPD_corrected}
     return result
 
@@ -256,7 +260,6 @@ def BeamCenterCorrection(data_dict):
     ydata_clean = UPD_array[nan_mask]
     #plt.plot(xdata_clean, ydata_clean, marker='o', linestyle='-') 
     # Find the threshold for the top 40% of UPD_array
-    #threshold = np.percentile(ydata_clean, 40)
     threshold = np.max(ydata_clean)/2.3
     #pp.pprint(threshold)
     #print(f"Threshold for the top 50% of UPD_array: {threshold}")
