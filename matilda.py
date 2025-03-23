@@ -87,7 +87,7 @@ logging.basicConfig(
 
 
 # define any globals here
-default_plt_font_size = 9
+default_plt_font_size = 8
 
 
 
