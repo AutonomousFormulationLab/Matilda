@@ -254,7 +254,8 @@ if __name__ == "__main__":
     # this has been shown to work
     try:
         while True:
-            logging.info("New round of processing started at : ", datetime.datetime.now()) 
+            logging.info("New round of processing started at : %s", datetime.datetime.now()) 
+            #print("New round of processing started at : ", datetime.datetime.now()) 
             logging.info('Processing the Flyscans')
             #print("Processing the Flyscans")
             ListOfScans = GetListOfScans("Flyscan")
