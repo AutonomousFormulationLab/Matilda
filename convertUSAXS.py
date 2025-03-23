@@ -132,7 +132,7 @@ def ImportStepScan(path, filename):
 def CorrectUPDGainsStep(data_dict):
     # multiply UPD by gain and divide by monitor
     # get the needed data from dictionary
-    AmpGain = data_dict["RawData"]["AmpGain"]
+    AmpGain = data_dict["RawData"]["AmpReqGain"]
     UPD_array = data_dict["RawData"]["UPD_array"]
     Monitor = data_dict["RawData"]["Monitor"]
     I0gain = data_dict["RawData"]["I0gain"]
