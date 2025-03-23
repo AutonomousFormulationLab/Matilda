@@ -99,8 +99,8 @@ def ImportStepScan(path, filename):
         #Arrays for gain changes
         dataset = file['/entry/data/upd_autorange_controls_gain'] 
         AmpGain = np.ravel(np.array(dataset))
-        dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
-        AmpReqGain = np.ravel(np.array(dataset))
+        #dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
+        #AmpReqGain = np.ravel(np.array(dataset))       #this contains only 0 values, useless... 
         #metadata
         metadata_group = file['/entry/instrument/bluesky/metadata']
         metadata_dict = read_group_to_dict(metadata_group)     
@@ -136,27 +136,32 @@ def CorrectUPDGainsStep(data_dict):
     UPD_array = data_dict["RawData"]["UPD_array"]
     Monitor = data_dict["RawData"]["Monitor"]
     I0gain = data_dict["RawData"]["I0gain"]
-    # need to remove points where gain changes
-    # Find indices where the change occurs
-    change_indices = np.where(np.diff(AmpGain) != 0)[0]
-    change_indices = change_indices +1
-    # fix range changes
-    #Correct UPD for gains so we can find max value loaction
-    UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
-    #remove renage chanegs on thsi array
-    UPD_temp[change_indices] = np.nan
-    # now locate location of max value in UPD_array
-    max_index = np.nanargmax(UPD_temp)
-    # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
-    # this removes the range changes only to before the peak location, does nto seem to work, really
-    #change_indices = change_indices[change_indices < max_index]
-    # Create a copy of the array to avoid modifying the original
-    AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
-    # Set the point before each range change to NaN
-    if len(change_indices) > 0:
-        AmpGain_new[change_indices] = np.nan
-    #Correct UPD for gains with points we  want removed set to Nan
-    UPD_corrected = (UPD_array*I0gain)/(AmpGain_new*Monitor)
+    # for some  reason, the AmpGain is shifted by one value so we need to duplicat efirst value and remove end value. 
+    first_value = AmpGain[0]
+    AmpGain = np.insert(AmpGain, 0, first_value)
+    AmpGain = AmpGain[:-1]
+    # change gain maiy not any mor ebe necessary... 
+    # # need to remove points where gain changes
+    # # Find indices where the change occurs
+    # change_indices = np.where(np.diff(AmpGain) != 0)[0]
+    # change_indices = change_indices +1
+    # # fix range changes
+    # #Correct UPD for gains so we can find max value loaction
+    # UPD_temp = (UPD_array*I0gain)/(AmpGain*Monitor)
+    # #remove renage chanegs on thsi array
+    # UPD_temp[change_indices] = np.nan
+    # # now locate location of max value in UPD_array
+    # max_index = np.nanargmax(UPD_temp)
+    # # we need to limit change_indices to values less than the location of maximum (before peak) = max_index
+    # # this removes the range changes only to before the peak location, does nto seem to work, really
+    # #change_indices = change_indices[change_indices < max_index]
+    # # Create a copy of the array to avoid modifying the original
+    # AmpGain_new = AmpGain.astype(float)                 # Ensure the array can hold NaN values
+    # # Set the point before each range change to NaN
+    # if len(change_indices) > 0:
+    #     AmpGain_new[change_indices] = np.nan
+    # #Correct UPD for gains with points we  want removed set to Nan
+    UPD_corrected = (UPD_array*I0gain)/(AmpGain*Monitor)
     result = {"UPD":UPD_corrected}
     return result
 
