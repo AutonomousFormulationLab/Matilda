@@ -82,6 +82,42 @@ def convert_results(r):
 #print_results_summary(r)
 
 
+def FindScanDataByName(plan_name,scan_title,NumScans=1):
+    #this filters for specific time AND for specific plan_name
+    uri = (
+        f"http://{server}:{port}"
+        "/api/v1/search"
+        f"/{catalog}"
+        f"?page[limit]={NumScans}"                                                  # 0: all matching, 10 is 10 scans. Must be >0 value
+        "&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
+        f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
+        "&filter[eq][condition][key]=title"                             # does not work... filter by plan_name
+        f'&filter[eq][condition][value]="{scan_title}"'                      # filter by plan_name value
+        "&sort=-time"                                                       # sort by time, -time gives last scans first
+        "&fields=metadata"                                                  # return metadata
+        "&omit_links=true"                                                  # no links
+        "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+        hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
+        )
+    logging.info(f"{uri=}")
+
+    #print(f"{uri=}")
+    try:
+        r = requests.get(uri).json()
+        #print(f'Search of {catalog=} has {len(r["data"])} runs.')
+        #print_results_summary(r)
+        # this is now a list of Flyscan data sets
+        ScanList = convert_results(r)
+        #print(ScanList)
+        #logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
+        logging.info(f"Plan name: {plan_name}, list of scans:{ScanList}")
+        return ScanList
+    except: 
+        # url communication failed, happens and shoudl not crash anything.
+        # this is workaround.   
+        logging.error('Could not get data from tiled server at  usaxscontrol.xray.aps.anl.gov')
+        logging.error(f"Failed {uri=}")
+        return []
 def FindLastScanData(plan_name,NumScans=10):
     #print (FindLastScanData("Flyscan",10))
     #print (FindLastScanData("uascan",10))
