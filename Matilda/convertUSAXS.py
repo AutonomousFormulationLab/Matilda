@@ -7,7 +7,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import read_group_to_dict
+from .supportFunctions import read_group_to_dict
 import os
 
 
