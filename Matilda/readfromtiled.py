@@ -118,6 +118,7 @@ def FindScanDataByName(plan_name,scan_title,NumScans=1):
         logging.error('Could not get data from tiled server at  usaxscontrol.xray.aps.anl.gov')
         logging.error(f"Failed {uri=}")
         return []
+        
 def FindLastScanData(plan_name,NumScans=10):
     #print (FindLastScanData("Flyscan",10))
     #print (FindLastScanData("uascan",10))
