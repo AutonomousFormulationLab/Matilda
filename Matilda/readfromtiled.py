@@ -88,11 +88,11 @@ def FindScanDataByName(plan_name,scan_title,NumScans=1):
         f"http://{server}:{port}"
         "/api/v1/search"
         f"/{catalog}"
-        f"?page[limit]={NumScans}"                                                  # 0: all matching, 10 is 10 scans. Must be >0 value
-        "&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
+        f"?page[limit]={NumScans}"                                          # 0: all matching, 10 is 10 scans. Must be >0 value
+        "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-        "&filter[eq][condition][key]=title"                             # does not work... filter by plan_name
-        f'&filter[eq][condition][value]="{scan_title}"'                      # filter by plan_name value
+        "&filter[eq][condition][key]=title"                                 # filter by title
+        f'&filter[eq][condition][value]="{scan_title}"'                     # filter by title value
         "&sort=-time"                                                       # sort by time, -time gives last scans first
         "&fields=metadata"                                                  # return metadata
         "&omit_links=true"                                                  # no links
@@ -100,8 +100,76 @@ def FindScanDataByName(plan_name,scan_title,NumScans=1):
         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
         )
     logging.info(f"{uri=}")
-
     #print(f"{uri=}")
+    #additional methods to match data:
+    #&filter[regex][condition][key]=plan_name
+    #&filter[regex][condition][pattern]={plan_name}     #use regex to match plan_name
+    #filter[regex][condition][key]=title
+    #&filter[regex][condition][key]={title}             #use regex to match title  
+    #and
+    #[noteq] - not equal
+    #[contains] - seems same as eq in use, and cannot be made into case insensitive. Not useful. 
+    #[in] - in a list of values
+    #[notin] - not in a list of values
+    #[comparison] - comparison with lt, gt, le, ge for numerical values
+
+
+    try:
+        r = requests.get(uri).json()
+        #print(f'Search of {catalog=} has {len(r["data"])} runs.')
+        #print_results_summary(r)
+        # this is now a list of Flyscan data sets
+        ScanList = convert_results(r)
+        #print(ScanList)
+        #logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
+        logging.info(f"Plan name: {plan_name}, list of scans:{ScanList}")
+        return ScanList
+    except: 
+        # url communication failed, happens and shoudl not crash anything.
+        # this is workaround.   
+        logging.error('Could not get data from tiled server at usaxscontrol.xray.aps.anl.gov')
+        logging.error(f"Failed {uri=}")
+        return []
+    
+
+def FindLastBlankScan(plan_name,NumScans=1):
+    #this filters for last collected Blank for specific plan_name
+    uri = (
+        f"http://{server}:{port}"
+        "/api/v1/search"
+        f"/{catalog}"
+        f"?page[limit]={NumScans}"                                          # 0: all matching, 10 is 10 scans. Must be >0 value
+        "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
+        f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
+        "&filter[regex][condition][key]=title"                                 # filter by title
+        f'&filter[eq][condition][pattern]=(?i)blank'                     # filter by title value
+        "&sort=-time"                                                       # sort by time, -time gives last scans first
+        "&fields=metadata"                                                  # return metadata
+        "&omit_links=true"                                                  # no links
+        "&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,\
+        hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
+        )
+    logging.info(f"{uri=}")
+    #print(f"{uri=}")
+    #additional methods to match data:
+    #&filter[regex][condition][key]=plan_name
+    #&filter[regex][condition][pattern]={plan_name}     #use regex to match plan_name
+    #filter[regex][condition][key]=title
+    #&filter[regex][condition][key]={title}             #use regex to match title  
+    #and
+    #[noteq] - not equal
+    #[contains] - seems same as eq in use, and cannot be made into case insensitive. Not useful. 
+    #[in] - in a list of values
+    #[notin] - not in a list of values
+    #[comparison] - comparison with lt, gt, le, ge for numerical values
+    #working example:
+    #http://10.211.55.7:8020/api/v1/search/usaxs/?page[limit]=10&filter[eq][condition][key]=plan_name&filter[eq][condition][value]=%22WAXS%22&filter[regex][condition][key]=title&filter[regex][condition][pattern]=(?i)blank&sort=-time
+    #returns list of "Blank" samples, not not ist of samples contains "blank" in name
+    #http://10.211.55.7:8020/api/v1/search/usaxs/?page[limit]=1&filter[eq][condition][key]=plan_name&filter[eq][condition][value]=%22WAXS%22&filter[regex][condition][key]=title&filter[regex][condition][pattern]=(?i)water*blank&sort=-time
+    #returns last scan which conatins case independent "water blank" in name
+    #http://10.211.55.7:8020/api/v1/search/usaxs/?page[limit]=1&filter[eq][condition][key]=plan_name&filter[eq][condition][value]=%22WAXS%22&filter[regex][condition][key]=title&filter[regex][condition][pattern]=(?i)blank&sort=-time&omit_links=true&select_metadata={plan_name:start.plan_name,time:start.time,scan_title:start.plan_args.scan_title,hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}
+    #returns last scan which conatisn case independet "water blank" in name
+    
     try:
         r = requests.get(uri).json()
         #print(f'Search of {catalog=} has {len(r["data"])} runs.')
@@ -118,6 +186,8 @@ def FindScanDataByName(plan_name,scan_title,NumScans=1):
         logging.error('Could not get data from tiled server at  usaxscontrol.xray.aps.anl.gov')
         logging.error(f"Failed {uri=}")
         return []
+ 
+
 def FindLastScanData(plan_name,NumScans=10):
     #print (FindLastScanData("Flyscan",10))
     #print (FindLastScanData("uascan",10))
@@ -135,8 +205,8 @@ def FindLastScanData(plan_name,NumScans=10):
         f"http://{server}:{port}"
         "/api/v1/search"
         f"/{catalog}"
-        f"?page[limit]={NumScans}"                                                  # 0: all matching, 10 is 10 scans. Must be >0 value
-        "&filter[eq][condition][key]=plan_name"                             # does not work... filter by plan_name
+        f"?page[limit]={NumScans}"                                          # 0: all matching, 10 is 10 scans. Must be >0 value
+        "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
         f"&filter[time_range][condition][since]={(end_time-86400)}"         # time range, start time - 24 hours from now
         f"&filter[time_range][condition][until]={end_time}"                 # time range, current time in seconds
@@ -148,7 +218,6 @@ def FindLastScanData(plan_name,NumScans=10):
         hdf5_file:start.hdf5_file,hdf5_path:start.hdf5_path}"   # select metadata
         )
     logging.info(f"{uri=}")
-
     #print(f"{uri=}")
     try:
         r = requests.get(uri).json()
