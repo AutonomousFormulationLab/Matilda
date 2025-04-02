@@ -1,11 +1,19 @@
 Notes and TODOs
 
+TODO:
 
-TODOs
-Normalize flyscan data
-Rebin data to lower resolution
-Save data into Nexus format
-Read data if present, reduce if not present. 
+For web page display
+    Normalize R flyscan/SAXS/WAXS data
+    Rebin R data to lower resolution
+    Save R data into hdf5 file for graphing
+    For graphing, read R data if present, reduce if not present
+Real data reduction:
+    Find last Blank, reduce if necessary, append appropriate (R?) data
+    For each sample
+        Subtract Blank with proper normalization, transmission, Q alignement
+        Calibrate to absolute scale/calibration
+        Reduce number of points if needed
+        Save data into Nexus format
 
 
 Code to read and write NXcanSAS data is here:
