@@ -2,7 +2,7 @@
 
 # to run use alias: screen -dmS matilda bash -c './matilda.sh'
 # Get the directory of the current script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/Matilda"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/matilda"
 
 # Change to the script's directory
 cd "$SCRIPT_DIR"
