@@ -138,9 +138,9 @@ def rebin_log_data(Wx, Wy, NumberOfPoints, MinStep, Wsdev=None, Wxsdev=None, Wxw
             if CalcW5:
                 Rebinned_Wv5[i] /= cntPoints
             if CalcSdev:
-                Rebinned_Wsdev[i] = np.sqrt(Rebinned_Wsdev[i]) / cntPoints
+                Rebinned_Wsdev[i] = np.sqrt(Rebinned_Wsdev[i] / cntPoints)
             if CalcXSdev:
-                Rebinned_Wxsdev[i] = np.sqrt(Rebinned_Wxsdev[i]) / cntPoints
+                Rebinned_Wxsdev[i] = np.sqrt(Rebinned_Wxsdev[i] / cntPoints)
 
     Wx = Rebinned_WvX
     Wy = Rebinned_WvY

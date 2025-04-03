@@ -227,15 +227,17 @@ def IN3_CalculateLineAverage(WaveY, WaveX, ivalue):
     float
         The calculated line average value.
     """
-    if ivalue > 2:
-        sumx = WaveX[ivalue - 1] + WaveX[ivalue] + WaveX[ivalue + 1]
-        sumx2 = WaveX[ivalue - 1]**2 + WaveX[ivalue]**2 + WaveX[ivalue + 1]**2
-        sumy = WaveY[ivalue - 1] + WaveY[ivalue] + WaveY[ivalue + 1]
-        sumxy = (WaveX[ivalue - 1] * WaveY[ivalue - 1] +
+    if ivalue > 1:
+        sumx = WaveX[ivalue - 2] + WaveX[ivalue - 1] + WaveX[ivalue] + WaveX[ivalue + 1]+ WaveX[ivalue + 2]
+        sumx2 = WaveX[ivalue - 2]**2 +WaveX[ivalue - 1]**2 + WaveX[ivalue]**2 + WaveX[ivalue + 1]**2+ WaveX[ivalue + 2]**2
+        sumy = WaveY[ivalue - 2] + WaveY[ivalue - 1] + WaveY[ivalue] + WaveY[ivalue + 1]+ WaveY[ivalue + 2]
+        sumxy = (WaveX[ivalue - 2] * WaveY[ivalue - 2] +
+                 WaveX[ivalue - 1] * WaveY[ivalue - 1] +
                  WaveX[ivalue] * WaveY[ivalue] +
-                 WaveX[ivalue + 1] * WaveY[ivalue + 1])
-        mval = (3 * sumxy - sumx * sumy) / (3 * sumx2 - sumx**2)
-        cval = (sumy - mval * sumx) / 3
+                 WaveX[ivalue + 1] * WaveY[ivalue + 1] +
+                 WaveX[ivalue + 2] * WaveY[ivalue + 2])
+        mval = (5 * sumxy - sumx * sumy) / (5 * sumx2 - sumx**2)
+        cval = (sumy - mval * sumx) / 5
         return mval * WaveX[ivalue] + cval
     return 0
 
@@ -261,15 +263,17 @@ def IN3_GetErrors(SmErrors, SmIntensity, FitIntensity, Qvector):
     imax = len(FitIntensity)
     DsmErrors = np.resize(DsmErrors, imax)
 
-    for i in range(1, imax - 1):
-        if np.isfinite(FitIntensity[i - 1]) and np.isfinite(FitIntensity[i]) and np.isfinite(FitIntensity[i + 1]):
-            DsmErrors[i] += IN3_CalculateLineAverage(FitIntensity, Qvector, i) - FitIntensity[i]
+    for i in range(2, imax - 2):
+        if np.isfinite(FitIntensity[i - 2]) and np.isfinite(FitIntensity[i]) and np.isfinite(FitIntensity[i + 1]) and np.isfinite(FitIntensity[i + 2]):
+            DsmErrors[i] += np.abs(IN3_CalculateLineAverage(FitIntensity, Qvector, i) - FitIntensity[i])
 
-    DsmErrors[0] = DsmErrors[1]
-    DsmErrors[imax - 1] = DsmErrors[imax - 2]
+    DsmErrors[0] = 3*DsmErrors[2]
+    DsmErrors[1] = 2*DsmErrors[2]
+    DsmErrors[imax - 1] = DsmErrors[imax - 3]
+    DsmErrors[imax - 2] = DsmErrors[imax - 3]
 
-    # Smooth the errors
-    DsmErrors = smooth_errors(DsmErrors)
+    # Smooth the errors - do not smooth errors... 
+    # DsmErrors = smooth_errors(DsmErrors)
 
     return DsmErrors
 
