@@ -1,6 +1,9 @@
 
 '''
     Converted by AI from Igor code
+
+    rebin_data() routine will rebin data from Q=0.0002 higher using rebin_log_data(), min step is set to distacne between Q[0] and Q[1]
+    
     This routine will rebin data on log scale. It will produce new Wx and Wy with new NumberOfPoints
     If MinStep > 0 it will try to set the values so the minimum step on log scale is MinStep
     optional Wsdev is standard deviation for each Wy value, it will be propagated through - sum(sdev^2)/numpnts in each bin. 
@@ -18,6 +21,32 @@
 import numpy as np
 from scipy.optimize import minimize
 
+
+def rebin_QRdata(Wx, Wy, NumberOfPoints):
+    '''
+    Rebin data based on the condition Q < 0.0002 and Q > 0.0002.
+    This function will split the data into two parts and rebin the second part using logarithmic scaling.
+    The first part (Q < 0.0002) will remain unchanged, while the second part (Q > 0.0002) will be rebinned.
+    The function will return the merged data from both parts.
+    The rebinning is done using the rebin_log_data function, which takes care of the logarithmic scaling.     
+    '''
+    # Split arrays based on the condition Q < 0.0002
+    mask_less = Wx < 0.0002
+    Wx_less = Wx[mask_less]
+    Wy_less = Wy[mask_less]
+
+    # Split arrays based on the condition Q > 0.0002
+    mask_greater = Wx > 0.0002
+    Wx_greater = Wx[mask_greater]
+    Wy_greater = Wy[mask_greater]
+
+    MinStep = Wx_greater[1] - Wx_greater[0]
+
+    Wx_greater2, Wy_greater2 = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep)
+
+    Q_merged = np.concatenate((Wx_less, Wx_greater2))
+    Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      
+    return Q_merged, Intensity_merged
 
 
 
