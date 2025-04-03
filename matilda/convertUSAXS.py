@@ -1,6 +1,16 @@
-# this file will import data from flyscan or step scan hdf5 file
-# it will convert to QR and optionally plot the results
+''' 
 
+    Import data from flyscan or step scan hdf5 file
+    and convert to QRdata
+
+    First check if group root:DisplayData exists, if not, load data, process and save for future use. 
+    If it exists, load data from it.
+    This is to save time for future use.
+
+    Main routines: 
+    reduceStepScanToQR
+    reduceFlyscanToQR
+'''
 
 import h5py
 import numpy as np
@@ -9,6 +19,8 @@ import matplotlib.pyplot as plt
 import pprint as pp
 from .supportFunctions import read_group_to_dict
 import os
+from .rebinData import rebin_QRdata
+from .hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 
@@ -20,10 +32,13 @@ def check_arrays_same_length(*arrays):
     #else:
         #print("All arrays have the same length.")
 
-
 # Gaussian function
 def gaussian(x, a, x0, sigma):
     return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
+
+#modified gaussian function, gives better fits to peak profiles. 
+def modifiedGauss(xvar, a, x0, sigma, dparameter):
+    return a * np.exp(-(np.abs(xvar - x0) / (2*sigma)) ** dparameter)
 
 
 ## main code here
@@ -252,10 +267,6 @@ def CorrectUPDGainsFly(data_dict):
     result = {"UPD":UPD_corrected}
     return result
 
-
-
-
-
 def BeamCenterCorrection(data_dict):
     # Find Peak center and create Q vector.
         #RawData=data_dict["rawData"]
@@ -280,21 +291,34 @@ def BeamCenterCorrection(data_dict):
     ydata_filtered = ydata_clean[mask]
         #plt.plot(xdata_filtered, ydata_filtered, marker='o', linestyle='-')
 
-        # Initial guess for the parameters: amplitude, mean, and standard deviation
-    initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
+        # Initial guess for the parameters: amplitude, mean, and standard deviation, 2 fgor d parameter
+    #initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
+    initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001, 2]
         #print(initial_guess)
 
         # Fit the Gaussian function to the filtered data
-    popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
+    #popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
+    popt, _ = curve_fit(modifiedGauss, xdata_filtered, ydata_filtered, p0=initial_guess)
 
         # Extract the fitted parameters
-    amplitude, x0, sigma = popt
-        #print(popt)
-        # Calculate the FWHM
-    fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)
-
+    amplitude, x0, sigma, dparam = popt
+    
         # Calculate the predicted y values using the fitted parameters
-    y_pred = gaussian(xdata_filtered, *popt)
+    y_pred = modifiedGauss(xdata_filtered, *popt)
+
+        # Calculate the FWHM
+        #fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)
+        # Calculate the half maximum
+    half_max = amplitude / 2
+
+        # Find the indices where the curve crosses the half maximum
+    indices = np.where(np.isclose(y_pred, half_max, atol=0.01))[0]
+
+        # Calculate the FWHM
+    if len(indices) >= 2:
+        fwhm = xdata_filtered[indices[-1]] - xdata_filtered[indices[0]]
+    else:
+        fwhm = np.nan  # FWHM cannot be determined
 
         # Calculate the residuals
     residuals = ydata_filtered - y_pred
@@ -327,6 +351,15 @@ def BeamCenterCorrection(data_dict):
             }
     return results
 
+def RebinData(data_dict):
+    # Rebin data to 200+peak area points.
+    Q_array = data_dict["ReducedData"]["Q_array"]
+    R_array = data_dict["ReducedData"]["UPD"]
+    Q_arrayNew, R_arrayNew = rebin_QRdata(Q_array, R_array, 200)
+    results = {"Q_array":Q_arrayNew,
+            "UPD":R_arrayNew  
+            }
+    return results
 
 def PlotResults(data_dict):
         # Plot UPD vs Q.
@@ -344,81 +377,76 @@ def PlotResults(data_dict):
     plt.grid(True)
     plt.show()
 
-
 def reduceFlyscanToQR(path, filename):
     # Open the HDF5 file in read/write mode
+    location = 'root/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
             # Check if the group 'DisplayData' exists
-            #if 'DisplayData' in hdf_file:
-            #    print("Group 'root/displayData' already exists.")
-            #     # Delete the group
-            #     #del hdf_file['root/displayData']
-            #     #print("Deleted existing group 'root/displayData'.") 
-            #     #label = data_dict["RawData"]["Filename"]
-            #     #Q_array = data_dict["ReducedData"]["Q_array"]
-            #     #UPD = data_dict["ReducedData"]["UPD"]
-            #     group = hdf_file['root/displayData']
-            #     Sample = {key: group[key][()] for key in group.keys()}
-            #     print("Loaded dictionary:")
-            #     print(Sample)
-            #     return Sample
-            # else:
-        Sample = dict()
-        Sample["RawData"]=ImportFlyscan(path, filename)
-            #pp.pprint(Sample)
-        Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
-        Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-            #pp.pprint(Sample["ReducedData"])
-            #PlotResults(Sample)
-            # Create the group and dataset for the new data
-            # newData=dict()
-            # newData["RawData"]={"Filename": filename}
-            # newData["ReducedData"]={"Q_array":Sample["ReducedData"]["Q_array"],
-            #                         "UPD":Sample["ReducedData"]["UPD"],}
-            # group = hdf_file.require_group('root')
-            # group = hdf_file.require_group('displayData')
-            # # Store each key-value pair as a dataset
-            # for key, value in newData.items():
-            #     # Convert value to a numpy array if it's not already
-            #     if not isinstance(value, np.ndarray):
-            #         value = np.array(value)
-            #     # Create or overwrite the dataset
-            #     if key in group:
-            #         del group[key]  # Delete existing dataset if it exists
-            #     group.create_dataset(key, data=value)
-
-            # print("Appended new data to 'root/displayData'.")
-        return Sample
-
+            if 'DisplayData' in hdf_file:
+                #print("Group 'root/displayData' already exists.")
+                 # Delete the group
+                 #del hdf_file['root/displayData']
+                 #print("Deleted existing group 'root/displayData'.") 
+                Sample = dict()
+                Sample = load_dict_from_hdf5(hdf_file, location)
+                return Sample
+            else:
+                Sample = dict()
+                Sample["RawData"]=ImportFlyscan(path, filename)         #import data
+                Sample["ReducedData"]= CorrectUPDGainsFly(Sample)       # Correct gains
+                Sample["ReducedData"].update(BeamCenterCorrection(Sample)) #Beam center correction
+                Sample["ReducedData"].update(RebinData(Sample))         #Rebin data
+                #pp.pprint(Sample["ReducedData"])
+                #PlotResults(Sample)
+                # Create the group and dataset for the new data inside the hdf5 file for future use. 
+                # these are not fully reduced data, this is for web plot purpose. 
+                save_dict_to_hdf5(Sample, location, hdf_file)
+                # print("Appended new data to 'root/displayData'.")
+                return Sample
 
 def reduceStepScanToQR(path, filename):
   # Open the HDF5 file in read/write mode
+    location = 'root/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
-        Sample = dict()
-        Sample["RawData"]=ImportStepScan(path, filename)
-        #pp.pprint(Sample)
-        Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-        Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-            #pp.pprint(Sample["ReducedData"])
-            #PlotResults(Sample)
-        return Sample
+        if 'DisplayData' in hdf_file:
+                #print("Group 'root/displayData' already exists.")
+                 # Delete the group
+                 #del hdf_file['root/displayData']
+                 #print("Deleted existing group 'root/displayData'.") 
+                Sample = dict()
+                Sample = load_dict_from_hdf5(hdf_file, location)
+                return Sample
+        else:
+                Sample = dict()
+                Sample["RawData"]=ImportStepScan(path, filename)
+                Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
+                Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+                #pp.pprint(Sample["ReducedData"])
+                #PlotResults(Sample)
+                # Create the group and dataset for the new data inside the hdf5 file for future use.
+                # these are not fully reduced data, this is for web plot purpose.
+                save_dict_to_hdf5(Sample, location, hdf_file)
+                return Sample
+
 
 
 if __name__ == "__main__":
     Sample = dict()
-    Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
+    Sample = reduceStepScanToQR("/home/parallels/Github/Matilda/TestData","USAXS_step.h5")
+    #Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
     #pp.pprint(Sample)
-    Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-    Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+    #Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
+    #Sample["ReducedData"].update(BeamCenterCorrection(Sample))
     #pp.pprint(Sample["ReducedData"])
     PlotResults(Sample)
     # Sample = dict()
+    Sample = reduceFlyscanToQR("/home/parallels/Github/Matilda/TestData","USAXS.h5")
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
     # Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
     # Sample["ReducedData"].update(BeamCenterCorrection(Sample))
     # #pp.pprint(Sample["ReducedData"])
-    # PlotResults(Sample)
+    PlotResults(Sample)
 
   
     
