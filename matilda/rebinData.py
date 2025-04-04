@@ -42,7 +42,7 @@ def rebin_QRdata(Wx, Wy, NumberOfPoints):
 
     MinStep = Wx_greater[1] - Wx_greater[0]
 
-    Wx_greater2, Wy_greater2 = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep)
+    Wx_greater2, Wy_greater2, W1, W2, W3, W4, W5, Wsdev, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep)
 
     Q_merged = np.concatenate((Wx_less, Wx_greater2))
     Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      

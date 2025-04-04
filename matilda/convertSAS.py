@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 import h5py
-from .supportFunctions import read_group_to_dict
+from supportFunctions import read_group_to_dict
 import pprint as pp
 import os
 import tifffile as tiff

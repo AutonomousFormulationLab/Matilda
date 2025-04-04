@@ -17,10 +17,10 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from .supportFunctions import read_group_to_dict
+from supportFunctions import read_group_to_dict
 import os
-from .rebinData import rebin_QRdata
-from .hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from rebinData import rebin_QRdata
+from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 
@@ -139,7 +139,7 @@ def ImportStepScan(path, filename):
                 "AmpGain": AmpGain,
                 "I0gain": I0gain,
                 "sample": sample_dict,
-                "metadata": instrument_dict,
+                "metadata": metadata_dict,
                 "instrument": instrument_dict,
                 }
     
@@ -267,7 +267,7 @@ def CorrectUPDGainsFly(data_dict):
     result = {"UPD":UPD_corrected}
     return result
 
-def BeamCenterCorrection(data_dict):
+def BeamCenterCorrection(data_dict, useGauss=1):
     # Find Peak center and create Q vector.
         #RawData=data_dict["rawData"]
         #ReducedData = data_dict["ReducedData"]
@@ -291,34 +291,41 @@ def BeamCenterCorrection(data_dict):
     ydata_filtered = ydata_clean[mask]
         #plt.plot(xdata_filtered, ydata_filtered, marker='o', linestyle='-')
 
+    
+    if useGauss:
         # Initial guess for the parameters: amplitude, mean, and standard deviation, 2 fgor d parameter
-    #initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
-    initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001, 2]
-        #print(initial_guess)
-
+        
+        initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001]
         # Fit the Gaussian function to the filtered data
-    #popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
-    popt, _ = curve_fit(modifiedGauss, xdata_filtered, ydata_filtered, p0=initial_guess)
+        popt, _ = curve_fit(gaussian, xdata_filtered, ydata_filtered, p0=initial_guess)
+        # Extract the fitted parameters
+        amplitude, x0, sigma = popt
+        # Calculate the FWHM
+        fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)        
+        # Calculate the predicted y values using the fitted parameters
+        y_pred = gaussian(xdata_filtered, *popt)       
+    else:
+        initial_guess = [np.max(ydata_filtered), xdata_filtered[np.argmax(ydata_filtered)], 0.0001, 1.98]
+        #print(initial_guess)
+        popt, _ = curve_fit(modifiedGauss, xdata_filtered, ydata_filtered, p0=initial_guess)
 
         # Extract the fitted parameters
-    amplitude, x0, sigma, dparam = popt
-    
+        amplitude, x0, sigma, dparam = popt
         # Calculate the predicted y values using the fitted parameters
-    y_pred = modifiedGauss(xdata_filtered, *popt)
+        y_pred = modifiedGauss(xdata_filtered, *popt)
 
         # Calculate the FWHM
-        #fwhm = 2 * np.abs(np.sqrt(2 * np.log(2)) * sigma)
         # Calculate the half maximum
-    half_max = amplitude / 2
+        half_max = amplitude / 2
 
         # Find the indices where the curve crosses the half maximum
-    indices = np.where(np.isclose(y_pred, half_max, atol=0.01))[0]
+        indices = np.where(np.isclose(y_pred, half_max, atol=0.01))[0]
 
         # Calculate the FWHM
-    if len(indices) >= 2:
-        fwhm = xdata_filtered[indices[-1]] - xdata_filtered[indices[0]]
-    else:
-        fwhm = np.nan  # FWHM cannot be determined
+        if len(indices) >= 2:
+            fwhm = xdata_filtered[indices[-1]] - xdata_filtered[indices[0]]
+        else:
+            fwhm = np.nan  # FWHM cannot be determined
 
         # Calculate the residuals
     residuals = ydata_filtered - y_pred
@@ -379,10 +386,10 @@ def PlotResults(data_dict):
 
 def reduceFlyscanToQR(path, filename):
     # Open the HDF5 file in read/write mode
-    location = 'root/displayData/'
+    location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
             # Check if the group 'DisplayData' exists
-            if 'DisplayData' in hdf_file:
+            if location in hdf_file:
                 #print("Group 'root/displayData' already exists.")
                  # Delete the group
                  #del hdf_file['root/displayData']
@@ -394,7 +401,7 @@ def reduceFlyscanToQR(path, filename):
                 Sample = dict()
                 Sample["RawData"]=ImportFlyscan(path, filename)         #import data
                 Sample["ReducedData"]= CorrectUPDGainsFly(Sample)       # Correct gains
-                Sample["ReducedData"].update(BeamCenterCorrection(Sample)) #Beam center correction
+                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=1)) #Beam center correction
                 Sample["ReducedData"].update(RebinData(Sample))         #Rebin data
                 #pp.pprint(Sample["ReducedData"])
                 #PlotResults(Sample)
@@ -406,9 +413,9 @@ def reduceFlyscanToQR(path, filename):
 
 def reduceStepScanToQR(path, filename):
   # Open the HDF5 file in read/write mode
-    location = 'root/displayData/'
+    location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
-        if 'DisplayData' in hdf_file:
+        if location in hdf_file:
                 #print("Group 'root/displayData' already exists.")
                  # Delete the group
                  #del hdf_file['root/displayData']
@@ -420,7 +427,7 @@ def reduceStepScanToQR(path, filename):
                 Sample = dict()
                 Sample["RawData"]=ImportStepScan(path, filename)
                 Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-                Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=1))
                 #pp.pprint(Sample["ReducedData"])
                 #PlotResults(Sample)
                 # Create the group and dataset for the new data inside the hdf5 file for future use.
