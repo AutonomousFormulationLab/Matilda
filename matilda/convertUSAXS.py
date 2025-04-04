@@ -311,23 +311,48 @@ def BeamCenterCorrection(data_dict, useGauss=1):
 
         # Extract the fitted parameters
         amplitude, x0, sigma, dparam = popt
-        # Calculate the predicted y values using the fitted parameters
-        y_pred = modifiedGauss(xdata_filtered, *popt)
-
+      
         # Calculate the FWHM
         # Calculate the half maximum
         half_max = amplitude / 2
 
-        # Find the indices where the curve crosses the half maximum
-        indices = np.where(np.isclose(y_pred, half_max, atol=0.01))[0]
+        # but next calculation needs to be done over larger q range
+        threshold = amplitude/3
+        mask = ydata_clean >= threshold
+        xdata_calc = xdata_clean[mask]
+        ydata_calc = ydata_clean[mask]
+     
+        # Calculate the predicted y values using the fitted parameters
+        ydata_calc = modifiedGauss(xdata_calc, *popt)
 
+        # Find where the array crosses the half maximum
+        crossings = np.where((ydata_calc[:-1] < half_max) & (ydata_calc[1:] >= half_max) |
+                     (ydata_calc[:-1] >= half_max) & (ydata_calc[1:] < half_max))[0]
+
+        # Calculate fractional crossing indices using linear interpolation
+        indices = []
+        for i in crossings:
+            y1, y2 = ydata_calc[i], ydata_calc[i + 1]
+            if y2 != y1:
+                fractional_index = i + (half_max - y1) / (y2 - y1)
+                indices.append(fractional_index)
+                
         # Calculate the FWHM
         if len(indices) >= 2:
-            fwhm = xdata_filtered[indices[-1]] - xdata_filtered[indices[0]]
+            i = int(np.floor(indices[0]))
+            y1 = xdata_calc[i]
+            y2 = xdata_calc[i+1]
+            xdata_calcl = y1 + (indices[0] - i) * (y2 - y1)
+            i = int(np.floor(indices[-1]))
+            y1 = xdata_calc[i]
+            y2 = xdata_calc[i+1]
+            xdata_calch = y1 + (indices[-1] - i) * (y2 - y1)           
+            fwhm = np.abs(xdata_calch - xdata_calcl)
         else:
             fwhm = np.nan  # FWHM cannot be determined
 
-        # Calculate the residuals
+    # Calculate the residuals
+    y_pred = modifiedGauss(xdata_filtered, *popt)
     residuals = ydata_filtered - y_pred
 
         # Calculate the chi-square
@@ -389,26 +414,26 @@ def reduceFlyscanToQR(path, filename):
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
             # Check if the group 'DisplayData' exists
-            if location in hdf_file:
-                #print("Group 'root/displayData' already exists.")
-                 # Delete the group
-                 #del hdf_file['root/displayData']
-                 #print("Deleted existing group 'root/displayData'.") 
-                Sample = dict()
-                Sample = load_dict_from_hdf5(hdf_file, location)
-                return Sample
-            else:
+            # if location in hdf_file:
+            #     #print("Group 'root/displayData' already exists.")
+            #      # Delete the group
+            #      #del hdf_file['root/displayData']
+            #      #print("Deleted existing group 'entry/displayData'.") 
+            #     Sample = dict()
+            #     Sample = load_dict_from_hdf5(hdf_file, location)
+            #     return Sample
+            # else:
                 Sample = dict()
                 Sample["RawData"]=ImportFlyscan(path, filename)         #import data
                 Sample["ReducedData"]= CorrectUPDGainsFly(Sample)       # Correct gains
-                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=1)) #Beam center correction
+                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=0)) #Beam center correction
                 Sample["ReducedData"].update(RebinData(Sample))         #Rebin data
                 #pp.pprint(Sample["ReducedData"])
                 #PlotResults(Sample)
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
                 # these are not fully reduced data, this is for web plot purpose. 
-                save_dict_to_hdf5(Sample, location, hdf_file)
-                # print("Appended new data to 'root/displayData'.")
+                #save_dict_to_hdf5(Sample, location, hdf_file)
+                # print("Appended new data to 'entry/displayData'.")
                 return Sample
 
 def reduceStepScanToQR(path, filename):
@@ -416,10 +441,10 @@ def reduceStepScanToQR(path, filename):
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
         if location in hdf_file:
-                #print("Group 'root/displayData' already exists.")
+                #print(f"Group {location} already exists.")
                  # Delete the group
-                 #del hdf_file['root/displayData']
-                 #print("Deleted existing group 'root/displayData'.") 
+                 #del hdf_file[location]
+                 #print("Deleted existing group 'entry/displayData'.") 
                 Sample = dict()
                 Sample = load_dict_from_hdf5(hdf_file, location)
                 return Sample
@@ -438,15 +463,16 @@ def reduceStepScanToQR(path, filename):
 
 
 if __name__ == "__main__":
-    Sample = dict()
-    Sample = reduceStepScanToQR("/home/parallels/Github/Matilda/TestData","USAXS_step.h5")
+    #Sample = dict()
+    #Sample = reduceStepScanToQR("/home/parallels/Github/Matilda/TestData","USAXS_step.h5")
     #Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
-    #pp.pprint(Sample)
-    #Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-    #Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-    #pp.pprint(Sample["ReducedData"])
-    PlotResults(Sample)
-    # Sample = dict()
+        #pp.pprint(Sample)
+        #Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
+        #Sample["ReducedData"].update(BeamCenterCorrection(Sample))
+        #pp.pprint(Sample["ReducedData"])
+    #PlotResults(Sample)
+    #flyscan
+    Sample = dict()
     Sample = reduceFlyscanToQR("/home/parallels/Github/Matilda/TestData","USAXS.h5")
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
