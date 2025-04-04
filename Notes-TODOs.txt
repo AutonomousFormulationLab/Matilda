@@ -4,7 +4,7 @@ TODO:
 
 For web page display
     Normalize R flyscan/SAXS/WAXS data
-    Make Modified Gauss peak fit working and get FWHM. 
+        done: Make Modified Gauss peak fit working and get FWHM. 
         done: Rebin R data to lower resolution
         done: Save R data into hdf5 file for graphing
         done: For graphing, read R data if present, reduce if not present
