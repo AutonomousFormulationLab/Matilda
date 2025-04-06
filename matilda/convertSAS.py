@@ -11,7 +11,7 @@ import pprint as pp
 import os
 import tifffile as tiff
 import logging
-
+from convertNikaTopyFAI import convert_Nika_to_Fit2D
 
 # Load your 2D image data
 # For this example, let's assume you have a NumPy array `image_data` representing your detector image
@@ -34,68 +34,30 @@ def ImportAndReduceAD(path, filename):
         metadata_dict = read_group_to_dict(metadata_group)    
         #logging.info(f"Metadata : {metadata_group}")
         #pp.pprint(metadata_dict)
-        # wavelength, convert to m
-        wavelength = instrument_dict["monochromator"]["wavelength"]* 1e-10 
-        # pixel_size, convert to m
-        pixel_size1 = instrument_dict["detector"]["x_pixel_size"]* 1e-3 
-        pixel_size2 = instrument_dict["detector"]["y_pixel_size"]* 1e-3 
-        # detector_distance, convert to m
-        detector_distance = instrument_dict["detector"]["distance"]* 1e-3 
-        # poni1, point of intercept. 
+        # wavelength, keep in A for Fit2D
+        wavelength = instrument_dict["monochromator"]["wavelength"]
+        # pixel_size, convert to um
+        pixel_size1 = instrument_dict["detector"]["x_pixel_size"]*1000 #in mm in NIka, in micron in Fit2D
+        pixel_size2 = instrument_dict["detector"]["y_pixel_size"]*1000 #in mm in NIka, in micron in Fit2D
+        # detector_distance, keep in mm for Fit2D
+        detector_distance = instrument_dict["detector"]["distance"] #in mm in Nika, in mm in Fit2D
         #logging.info(f"Read metadata")
         if "pin_ccd_tilt_x" in metadata_dict:
             usingWAXS=0
             BCY = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
             BCX = instrument_dict["detector"]["beam_center_x"] # poni2 shoudl be x and poni1 should be y
-            BCY = BCY * pixel_size2 
-            BCX = BCX * pixel_size1 
-            rotX = metadata_dict["pin_ccd_tilt_x"]*np.pi/180
-            rotY = metadata_dict["pin_ccd_tilt_y"]*np.pi/180
+            HorTilt = metadata_dict["pin_ccd_tilt_x"]              #keep in degrees for Fit2D
+            VertTilt = metadata_dict["pin_ccd_tilt_y"]              #keep in degrees for Fit2D
         else:
             usingWAXS=1
             BCY = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
             BCX = instrument_dict["detector"]["beam_center_x"] # poni2 shoudl be x and poni1 should be y
-            BCY = BCY * pixel_size2 
-            BCX = BCX * pixel_size1 
-            rotX = metadata_dict["waxs_ccd_tilt_x"]*np.pi/180
-            rotY = metadata_dict["waxs_ccd_tilt_y"]*np.pi/180     
+            HorTilt = metadata_dict["waxs_ccd_tilt_x"]             #keep in degrees for Fit2D
+            VertTilt = metadata_dict["waxs_ccd_tilt_y"]             #keep in degrees for Fit2D    
 
         #logging.info(f"Finished reading metadata")
-
-    # now we need to do correction on geometry. 
-    # Nika rotates the detector around the beam center while pyFAI around sample
-    # this corrections testing is based on pyFAI-calib2 testing for 45 deg tilt tiff file from Bob GSAS-II
-    # first correct distacne:
-    #detector_distance = detector_distance*abs(np.cos(rotX)*np.cos(rotY))
-    # now calculate poni1 and poni2
-    # testing shows, that poni1 is related to BCY and rotY
-    # but rot1 is = rotX
-    # poni1 = BCX + detector_distance*np.tan(rotX)
-    # poni2 = BCY + detector_distance*np.tan(rotY)
-    # rot1=rotX
-    # rot2=rotY   
-    #override for for now below:
-    #TODO: need to figrue this out more on new test dat aset in hdf5 file with 
-    #proper calibration in parameters...        
-    rot1=0
-    rot2=0
-    poni1=BCX
-    poni2 = BCY
-    # print(f"wavelength: {wavelength}")
-    # print(f"pixel_size1: {pixel_size1}")
-    # print(f"pixel_size2: {pixel_size2}")
-    # print(f"detector_distance: {detector_distance}")
-    # print(f"poni1: {poni1}")
-    # print(f"poni2: {poni2}")
-    # print(f"rot1: {rot1}")
-    # print(f"rot2: {rot2}")    
-    # print(f"rotX: {rotX}")
-    # print(f"rotY: {rotY}")
-                
-    # plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
-    # plt.colorbar()  # Optional: Add a colorbar to show the scale
-    # plt.title('2D Array Visualization')
-    # plt.show()
+    poni = convert_Nika_to_Fit2D(detector_distance, pixel_size1, BCX, BCY, HorTilt, VertTilt, wavelength)
+    # poni is geomtry file for pyFAI, created by converting first to Fit2D and then calling pyFAI conversion function.
 
     #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN
     #this is for waxs ONLY, DIFFERENT FOR saxs
@@ -114,16 +76,11 @@ def ImportAndReduceAD(path, filename):
 
     #logging.info(f"Finished creating mask")
 
-    # Define your detector geometry
-    # You need to specify parameters like the detector distance, pixel size, and wavelength
-    #detector_distance = 0.1  # in meters
-    #pixel_size = 0.0001  # in meters
-    #wavelength = 1.54e-10  # in meters (for example, Cu K-alpha)
-
     # Create an AzimuthalIntegrator object
-    ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
-                            pixel1=pixel_size1, pixel2=pixel_size2, 
-                            wavelength=wavelength)
+    # old methos ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
+    #                        pixel1=pixel_size1, pixel2=pixel_size2, 
+    #                        wavelength=wavelength)
+    ai = AzimuthalIntegrator(poni)
 
     # Perform azimuthal integration
     # You can specify the number of bins for the integration
