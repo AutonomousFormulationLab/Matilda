@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 import h5py
-from supportFunctions import read_group_to_dict
+from supportFunctions import read_group_to_dict, filter_nested_dict
 import pprint as pp
 import os
 import tifffile as tiff
@@ -30,8 +30,17 @@ def ImportAndReduceAD(path, filename):
         instrument_group = file['/entry/instrument']
         instrument_dict = read_group_to_dict(instrument_group)
         #metadata
+        keys_to_keep = ['I000_cts', 'I00_cts', 'I00_gain', 'I0_cts', 'I0_gated',
+                        'I0_gain', 'I_scaling', 'Pin_TrI0', 'Pin_TrI0gain', 'Pin_TrI0gain','Pin_TrPD','Pin_TrPDgain',
+                        'PresetTime', 'monoE', 'pin_ccd_center_x_pixel','pin_ccd_center_y_pixel',
+                        'pin_ccd_tilt_x', 'pin_ccd_tilt_y', 'wavelength', 'waxs_ccd_center_x', 'waxs_ccd_center_y',
+                        'waxs_ccd_tilt_x', 'waxs_ccd_tilt_y', 'waxs_ccd_center_x_pixel', 'waxs_ccd_center_y_pixel',
+                        'scaler_freq'                     
+                    ]        
         metadata_group = file['/entry/Metadata']
-        metadata_dict = read_group_to_dict(metadata_group)    
+        metadata_dict = read_group_to_dict(metadata_group)
+        metadata_dict = filter_nested_dict(metadata_dict, keys_to_keep)
+
         #logging.info(f"Metadata : {metadata_group}")
         #pp.pprint(metadata_dict)
         # wavelength, keep in A for Fit2D
@@ -42,6 +51,8 @@ def ImportAndReduceAD(path, filename):
         # detector_distance, keep in mm for Fit2D
         detector_distance = instrument_dict["detector"]["distance"] #in mm in Nika, in mm in Fit2D
         #logging.info(f"Read metadata")
+        # convert to Fit2D syntax and then use pyFAI function to convert to poni
+        #TODO
         if "pin_ccd_tilt_x" in metadata_dict:
             usingWAXS=0
             BCX = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite

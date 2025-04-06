@@ -17,7 +17,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import read_group_to_dict
+from supportFunctions import read_group_to_dict, filter_nested_dict
 import os
 from rebinData import rebin_QRdata
 from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
@@ -68,11 +68,18 @@ def ImportFlyscan(path, filename):
         dataset = file['/entry/flyScan/changes_DDPCA300_mcsChan'] 
         Channel = np.ravel(np.array(dataset))    
         #metadata
+        keys_to_keep = ['AR_center', 'ARenc_0', 'DCM_energy', 'DCM_theta', 'I0AmpGain',
+                        'UPDsize', 'trans_I0_counts', 'trans_I0_gain', 'upd_bkg0', 'upd_bkg1','upd_bkg2','upd_bkg3',
+                        'upd_bkg4'
+                    ]
         metadata_group = file['/entry/metadata']
         metadata_dict = read_group_to_dict(metadata_group)
+        metadata_dict = filter_nested_dict(metadata_dict, keys_to_keep)
         #Instrument
+        keys_to_keep = ['monochromator', 'energy', 'wavelength']
         instrument_group = file['/entry/instrument']
         instrument_dict = read_group_to_dict(instrument_group)
+        instrument_dict = filter_nested_dict(instrument_dict, keys_to_keep)
 
 
     # Call the function with your arrays
@@ -118,14 +125,18 @@ def ImportStepScan(path, filename):
             #dataset = file['/entry/data/upd_autorange_controls_reqrange'] 
             #AmpReqGain = np.ravel(np.array(dataset))       #this contains only 0 values, useless... 
         #metadata
+        keys_to_keep = ['SAD_mm', 'SDD_mm', 'thickness', 'title', 'useSBUSAXS',
+                        'intervals', 
+                    ]
         metadata_group = file['/entry/instrument/bluesky/metadata']
         metadata_dict = read_group_to_dict(metadata_group)     
+        metadata_dict = filter_nested_dict(metadata_dict, keys_to_keep)
         #Instrument
         instrument_group = file['/entry/instrument/monochromator']
         instrument_dict = read_group_to_dict(instrument_group)        
         #Sample
-        sample_group = file['/entry/sample']
-        sample_dict = read_group_to_dict(sample_group)
+        #sample_group = file['/entry/sample']
+        #sample_dict = read_group_to_dict(sample_group)
 
 
     # Call the function with your arrays

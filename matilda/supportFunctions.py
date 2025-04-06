@@ -27,6 +27,24 @@ def read_group_to_dict(group):
             data_dict[key] = read_group_to_dict(item)
     return data_dict
 
+# def filter_nested_dict(d, keys_to_keep):
+#     if isinstance(d, dict):
+#         return {k: filter_nested_dict(v, keys_to_keep) for k, v in d.items() if k in keys_to_keep}
+#     elif isinstance(d, list):
+#         return [filter_nested_dict(item, keys_to_keep) for item in d]
+#     else:
+#         return d
+
+
+# this should not fail if keys on the list are not present
+def filter_nested_dict(d, keys_to_keep):
+    if isinstance(d, dict):
+        return {k: filter_nested_dict(v, keys_to_keep) for k, v in d.items() if k in keys_to_keep and k in d}
+    elif isinstance(d, list):
+        return [filter_nested_dict(item, keys_to_keep) for item in d]
+    else:
+        return d    
+
 def results_to_dataset(results):
     results = copy.deepcopy(results)
     ds = xr.Dataset()
