@@ -1,17 +1,17 @@
-# Convert Nika data to Fit2D format
+# Convert Nika data to pyFAI using Fit2D 
 '''
-    Convert Nika data to Fit2D format.
-    Needs pyFAI
+    Convert Nika SAS geometry parameters to pyFAI using Fit2D format.
+    Needs pyFAI library. 
     Convert Nika SDD, pix size, BCX, BCY, HorTilt, verTiilt 
-    first into Fit2D format
-    Then use pyFAI to convert the data to Fit2D format.
+    First convert into Fit2D format
+    Then use pyFAI to convert Fit2D to poni format.
 '''
 
 from pyFAI.geometry.fit2d import Fit2dGeometry, convert_from_Fit2d
 from pprint import pprint as pp
 import numpy as np
 
-# Fit2D parameters
+# Fit2D parameter definitions/example
 # direct_dist = 200.0  # Distance from sample to detector in mm
 # center_x = 1000.0    # Beam center X in pixels
 # center_y = 1000.0    # Beam center Y in pixels
@@ -21,11 +21,10 @@ import numpy as np
 # pixel_y = 75         # Pixel size in um (Y direction)
 # spline_file = None   # Path to spline file if any
 # detector = None      # Detector object if any
-# wavelength = 0.59    # Wavelength in Angstroms
+# wavelength = 0.59    # Wavelength in Angstroms (this is 21keV)
 
 
-
-
+# the main callable function 
 def convert_Nika_to_Fit2D(SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelengtgh):
     '''
     Convert Nika data to Fit2D format.
