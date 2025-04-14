@@ -69,7 +69,7 @@ def convert_Nika_to_Fit2D(*, SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelen
         pixelY=pix_size*1000,
         splineFile=None,
         detector=None,
-        wavelength=wavelengtgh
+        wavelength=wavelength
     )
     #pp(fit2d_geometry)
     # Convert to PONI object

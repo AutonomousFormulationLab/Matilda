@@ -171,7 +171,7 @@ def PlotResults(data_dict):
 
 if __name__ == "__main__":
     Sample = dict()
-    Sample=reduceADToQR("/home/parallels/Documents/TiltsTest_waxs_fixedMD","LaB6_tilt7v_0049.hdf")
+    Sample=reduceADToQR("/home/parallels/Github/Matilda/TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
     #Sample["ReducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
     #pp.pprint(Sample)
     PlotResults(Sample)
