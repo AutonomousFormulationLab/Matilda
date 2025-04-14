@@ -25,12 +25,12 @@ import numpy as np
 
 
 # the main callable function 
-def convert_Nika_to_Fit2D(SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelengtgh):
+def convert_Nika_to_Fit2D(*, SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelength):
     '''
     Convert Nika data to Fit2D format.
     Needs pyFAI
     Convert Nika SDD, pix size, BCX, BCY, HorTilt, verTiilt
-    foirst into Fit2D format
+    first into Fit2D format
     Then use pyFAI to convert the data to Fit2D format.
     units: 
         SDD in mm, 
@@ -39,6 +39,23 @@ def convert_Nika_to_Fit2D(SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelengtg
         HorTilt, VertTilt in degrees, 
         wavelength in A
     '''
+    # Check for missing or None parameters
+    if SSD is None:
+        raise TypeError("Missing required parameter: SSD")
+    if pix_size is None:
+        raise TypeError("Missing required parameter: pix_size")
+    if BCX is None:
+        raise TypeError("Missing required parameter: BCX")
+    if BCY is None:
+        raise TypeError("Missing required parameter: BCY")
+    if HorTilt is None:
+        raise TypeError("Missing required parameter: HorTilt")
+    if VertTilt is None:
+        raise TypeError("Missing required parameter: VertTilt")
+    if wavelength is None:
+        raise TypeError("Missing required parameter: wavelength")
+
+
     Fit2D_TiltDir, Fit2D_TiltAngle = convert_Nika_to_Fit2D_angles(HorTilt, VertTilt)     
 
     # Create a Fit2dGeometry object

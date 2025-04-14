@@ -67,7 +67,7 @@ def ImportAndReduceAD(path, filename):
         #logging.info(f"Finished reading metadata")
     
     # poni is geometry file for pyFAI, created by converting first to Fit2D and then calling pyFAI conversion function.
-    my_poni = convert_Nika_to_Fit2D(detector_distance, pixel_size1, BCX, BCY, HorTilt, VertTilt, wavelength)
+    my_poni = convert_Nika_to_Fit2D(SSD=detector_distance, pix_size=pixel_size1, BCX=BCX, BCY=BCY, HorTilt=HorTilt, VertTilt=VertTilt, wavelength=wavelength)
 
     #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN or for SAXS mask all negative intensities
     if usingWAXS:
