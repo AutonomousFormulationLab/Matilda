@@ -135,8 +135,8 @@ def ImportStepScan(path, filename):
         instrument_group = file['/entry/instrument/monochromator']
         instrument_dict = read_group_to_dict(instrument_group)        
         #Sample
-        #sample_group = file['/entry/sample']
-        #sample_dict = read_group_to_dict(sample_group)
+        sample_group = file['/entry/sample']
+        sample_dict = read_group_to_dict(sample_group)
 
 
     # Call the function with your arrays
