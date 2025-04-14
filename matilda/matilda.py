@@ -159,7 +159,7 @@ def processSASdata(ListOfScans):
             results.append(reduceADToQR(path, filename))
         except:
             pass
-    #print("Done processing the Flyscans")
+    #print("Done processing the AD data")
     return results
 
 def plotUSAXSResults(ListOfresults, isFlyscan=True):  

@@ -1,21 +1,20 @@
-# readTiled.py 
-# version 0.1   2025-03-04
+'''
+    readTiled.py 
+    version 0.2   2025-04-15
+    this code will get last N data sets from tiled database for Flyscan, USAXS, SAXS, and WAXS
+    it will recreate what IR3BS_GetJSONScanData() does in Indra package In3_ClueSkyreader.ipf
+    it wil luse tiled web interface and read data into json.
+    the main purpose is to get list fo filenames and paths for the last N scans
+    and then use this list to download the data from the server
+    the code will aslo remeber when was the last polling and ask for data only since last time. 
+    need to handel gracefully the start
+    code will trigger appropriate data recduction routines for different data sets
+    at the end the code will generate necessary pictures for live data page.
+    the code will be run in background and be checked by a cron job every 5 minutes
 
-
-# this code will get last N data sets from tiled database for Flyscan, USAXS, SAXS, and WAXS
-# it will recreate what IR3BS_GetJSONScanData() does in Indra package In3_ClueSkyreader.ipf
-# it wil luse tiled web interface and read data into json.
-# the main purpose is to get list fo filenames and paths for the last N scans
-# and then use this list to download the data from the server
-#the code will aslo remeber when was the last polling and ask for data only since last time. 
-# need to handel gracefully the start
-# code will trigger appropriate data recduction routines for different data sets
-# at the end the code will generate necessary pictures for live data page.
-# the code will be run in background and be checked by a cron job every 5 minutes
-
-# method used buitls on https://github.com/BCDA-APS/bdp-tiled/blob/main/demo_client.ipynb
-# and follows Igor code to get the right data sets
-
+    method used buitls on https://github.com/BCDA-APS/bdp-tiled/blob/main/demo_client.ipynb
+    and follows Igor code to get the right data sets
+'''
 
 # import necessary libraries
 import requests
@@ -116,16 +115,12 @@ def FindScanDataByName(plan_name,scan_title,NumScans=1):
 
     try:
         r = requests.get(uri).json()
-        #print(f'Search of {catalog=} has {len(r["data"])} runs.')
-        #print_results_summary(r)
-        # this is now a list of Flyscan data sets
         ScanList = convert_results(r)
-        #print(ScanList)
         #logging.info('Received expected data from tiled server at usaxscontrol.xray.aps.anl.gov')
         logging.info(f"Plan name: {plan_name}, list of scans:{ScanList}")
         return ScanList
     except: 
-        # url communication failed, happens and shoudl not crash anything.
+        # url communication failed, happens and should not crash anything.
         # this is workaround.   
         logging.error('Could not get data from tiled server at usaxscontrol.xray.aps.anl.gov')
         logging.error(f"Failed {uri=}")
@@ -141,8 +136,8 @@ def FindLastBlankScan(plan_name,NumScans=1):
         f"?page[limit]={NumScans}"                                          # 0: all matching, 10 is 10 scans. Must be >0 value
         "&filter[eq][condition][key]=plan_name"                             # filter by plan_name
         f'&filter[eq][condition][value]="{plan_name}"'                      # filter by plan_name value
-        "&filter[regex][condition][key]=title"                                 # filter by title
-        f'&filter[eq][condition][pattern]=(?i)blank'                     # filter by title value
+        "&filter[regex][condition][key]=title"                              # filter by title
+        f'&filter[regex][condition][pattern]=(?i)blank'                     # filter by title value
         "&sort=-time"                                                       # sort by time, -time gives last scans first
         "&fields=metadata"                                                  # return metadata
         "&omit_links=true"                                                  # no links

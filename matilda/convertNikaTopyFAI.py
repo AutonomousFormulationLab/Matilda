@@ -2,9 +2,11 @@
 '''
     Convert Nika SAS geometry parameters to pyFAI using Fit2D format.
     Needs pyFAI library. 
-    Convert Nika SDD, pix size, BCX, BCY, HorTilt, verTiilt 
+    Convert Nika SDD, pix size, BCX, BCY, HorTilt, verTilt 
     First convert into Fit2D format
     Then use pyFAI to convert Fit2D to poni format.
+    NOTE: this seems to wokr only for data from hdf5 files = Nexus NXsas files. 
+    Tiff ffiles seem to be loaded differently between Nika and pyFAI. Geomtry conversion (signs/X/Y changes are needed. )
 '''
 
 from pyFAI.geometry.fit2d import Fit2dGeometry, convert_from_Fit2d
