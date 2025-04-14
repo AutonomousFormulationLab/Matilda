@@ -61,8 +61,8 @@ def ImportAndReduceAD(path, filename):
             VertTilt = metadata_dict["pin_ccd_tilt_y"]              #keep in degrees for Fit2D
         else:
             usingWAXS=1
-            BCX = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
-            BCY = instrument_dict["detector"]["beam_center_x"] # poni2 shoudl be x and poni1 should be y
+            BCY = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
+            BCX = instrument_dict["detector"]["beam_center_x"] # poni2 shoudl be x and poni1 should be y
             HorTilt = metadata_dict["waxs_ccd_tilt_x"]             #keep in degrees for Fit2D
             VertTilt = metadata_dict["waxs_ccd_tilt_y"]             #keep in degrees for Fit2D    
 
