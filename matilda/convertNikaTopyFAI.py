@@ -32,7 +32,12 @@ def convert_Nika_to_Fit2D(SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelengtg
     Convert Nika SDD, pix size, BCX, BCY, HorTilt, verTiilt
     foirst into Fit2D format
     Then use pyFAI to convert the data to Fit2D format.
-    unites: SDD in mm, ix_size in um (NOT mm), BCX, BCY in pixels, HorTilt, VertTilt in degrees, wavelength in A
+    units: 
+        SDD in mm, 
+        pix_size in mm (convert below to um), 
+        BCX, BCY in pixels, 
+        HorTilt, VertTilt in degrees, 
+        wavelength in A
     '''
     Fit2D_TiltDir, Fit2D_TiltAngle = convert_Nika_to_Fit2D_angles(HorTilt, VertTilt)     
 
@@ -43,8 +48,8 @@ def convert_Nika_to_Fit2D(SSD, pix_size, BCX, BCY, HorTilt, VertTilt, wavelengtg
         centerY=BCX,
         tilt=Fit2D_TiltAngle,
         tiltPlanRotation=Fit2D_TiltDir,
-        pixelX=pix_size,
-        pixelY=pix_size,
+        pixelX=pix_size*1000,
+        pixelY=pix_size*1000,
         splineFile=None,
         detector=None,
         wavelength=wavelengtgh

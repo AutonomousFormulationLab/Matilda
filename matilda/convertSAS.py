@@ -46,20 +46,18 @@ def ImportAndReduceAD(path, filename):
         # wavelength, keep in A for Fit2D
         wavelength = instrument_dict["monochromator"]["wavelength"]
         # pixel_size, convert to um
-        pixel_size1 = instrument_dict["detector"]["x_pixel_size"]*1000 #in mm in NIka, in micron in Fit2D
-        pixel_size2 = instrument_dict["detector"]["y_pixel_size"]*1000 #in mm in NIka, in micron in Fit2D
+        pixel_size1 = instrument_dict["detector"]["x_pixel_size"] #in mm in NIka, will convert to micron for Fit2D later
+        pixel_size2 = instrument_dict["detector"]["y_pixel_size"] #in mm in NIka, will convert to micron for Fit2D later
         # detector_distance, keep in mm for Fit2D
         detector_distance = instrument_dict["detector"]["distance"] #in mm in Nika, in mm in Fit2D
         #logging.info(f"Read metadata")
-        # convert to Fit2D syntax and then use pyFAI function to convert to poni
-        #TODO
-        if "pin_ccd_tilt_x" in metadata_dict:
+        if "pin_ccd_tilt_x" in metadata_dict:   # this is SAXS
             usingWAXS=0
             BCY = instrument_dict["detector"]["beam_center_y"]      #  based on Peter's code this shoudl be opposite
             BCX= instrument_dict["detector"]["beam_center_x"]       # This si swapped later in the code. 
             HorTilt = metadata_dict["pin_ccd_tilt_x"]               #keep in degrees for Fit2D
             VertTilt = metadata_dict["pin_ccd_tilt_y"]              #keep in degrees for Fit2D
-        else:
+        else:           # and this is WAXS
             usingWAXS=1
             BCY = instrument_dict["detector"]["beam_center_y"] # based on Peter's code this shoudl be opposite
             BCX = instrument_dict["detector"]["beam_center_x"] # poni2 shoudl be x and poni1 should be y
@@ -67,11 +65,11 @@ def ImportAndReduceAD(path, filename):
             VertTilt = metadata_dict["waxs_ccd_tilt_y"]             #keep in degrees for Fit2D    
 
         #logging.info(f"Finished reading metadata")
-    poni = convert_Nika_to_Fit2D(detector_distance, pixel_size1, BCX, BCY, HorTilt, VertTilt, wavelength)
-    # poni is geomtry file for pyFAI, created by converting first to Fit2D and then calling pyFAI conversion function.
+    
+    # poni is geometry file for pyFAI, created by converting first to Fit2D and then calling pyFAI conversion function.
+    my_poni = convert_Nika_to_Fit2D(detector_distance, pixel_size1, BCX, BCY, HorTilt, VertTilt, wavelength)
 
-    #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN
-    #this is for waxs ONLY, DIFFERENT FOR saxs
+    #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN or for SAXS mask all negative intensities
     if usingWAXS:
         mask = np.copy(my2DData)
         mask = 0*mask   # set all values to zero
@@ -86,19 +84,18 @@ def ImportAndReduceAD(path, filename):
         mask[:, 242:245] = 1
 
     #logging.info(f"Finished creating mask")
-
-    # Create an AzimuthalIntegrator object
-    # old method ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
-    #                        pixel1=pixel_size1, pixel2=pixel_size2, 
-    #                        wavelength=wavelength)
-    #print(poni)
-    #ai = AzimuthalIntegrator(poni)
-    ai = AzimuthalIntegrator(dist=poni.dist, poni1=poni.poni1, poni2=poni.poni2, rot1=poni.rot1, rot2=poni.rot2,
-                           rot3=poni.rot3, pixel1=poni.detector.pixel1, pixel2=poni.detector.pixel2, 
-                           wavelength=poni.wavelength)
+    
+    #now define integrator... using pyFAI here. 
+    #ai = AzimuthalIntegrator(poni=my_poni)
+    # this does not work, they really do not have way to pass whole poni in? 
+    # but this works fine
+    ai = AzimuthalIntegrator(dist=my_poni.dist, poni1=my_poni.poni1, poni2=my_poni.poni2, rot1=my_poni.rot1, rot2=my_poni.rot2,
+                           rot3=my_poni.rot3, pixel1=my_poni.detector.pixel1, pixel2=my_poni.detector.pixel2, 
+                           wavelength=my_poni.wavelength)
+    
     # Perform azimuthal integration
     #   You can specify the number of bins for the integration
-    #   set npt to larger of dimmension of my2DData  `
+    #   set npt to larger of dimmension of my2DData
     npt = max(my2DData.shape)
         #npt = 1000  # Number of bins, if should be lower
     q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
@@ -108,80 +105,67 @@ def ImportAndReduceAD(path, filename):
     return result
 
 
-## test fro tilts goes here
-def test(path, filename):
-    # read data from tiff file and read the data 
-    my2DData = tiff.imread(filename)
-    # plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
-    # plt.colorbar()  # Optional: Add a colorbar to show the scale
-    # plt.title('2D Array Visualization')
-    # plt.show()    # wavelength, convert to m
-    wavelength = 0.10798* 1e-10 
-    # pixel_size, convert to m
-    pixel_size1 = 0.1* 1e-3 # x in Nika, in m
-    pixel_size2 = 0.1* 1e-3 # y in Nika, in m
-    # detector_distance, convert to m
-    detector_distance = 1004.91* 1e-3 
-    # poni1, point of intercept in y in Nika, in m
-    # poni2, point of intercept in x in Nika, in m
-    # read Nika BCX and BCY and convert to m
-    BCX = 886.7     # x in Nika
-    BCY = 1048.21   # y in Nika, width in Python
-    BCY = BCY * pixel_size2 #in m now
-    BCX = BCX * pixel_size1 #in m now
-    # read Nika rot1 and rot2 and convert to radians
-    rotX = 44.7*np.pi/180   # x direction in Nika
-    rotY = 0.02*np.pi/180   # y direction in Nika
-    # now corrections based on pyfain-geom2 testing for 45 deg tilt
-    # first correct distacne:
-    detector_distance = detector_distance*abs(np.cos(rotX)*np.cos(rotY))
-    # now calculate poni1 and poni2
-    # confusingly, the poni1 is realted to BCY and poni2 is related to BCX
-    # is this issue with reading tiff vs hdf5 image orientations? 
-    poni2 = BCX + detector_distance*np.tan(rotX)
-    poni1 = BCY + detector_distance*np.tan(rotY)
-    rot1=rotX
-    rot2=rotY              
-    #print(f"wavelength: {wavelength}")
-    #print(f"pixel_size1: {pixel_size1}")
-    #print(f"pixel_size2: {pixel_size2}")
-    # print(f"detector_distance: {detector_distance}")
-    # print(f"poni1: {poni1}")
-    # print(f"poni2: {poni2}")
-    # print(f"rot1: {rot1}")
-    # print(f"rot2: {rot2}")
-                
-    # plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
-    # plt.colorbar()  # Optional: Add a colorbar to show the scale
-    # plt.title('2D Array Visualization')
-    # plt.show()
-
-    #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN
-    #this is for waxs ONLY, DIFFERENT FOR saxs
-    mask = np.copy(my2DData)
-    mask = 0*mask   # set all values to zero
+# ## test fro tilts goes here
+# def test(path, filename):
+#     # read data from tiff file and read the data 
+#     my2DData = tiff.imread(filename)
+#     # plt.imshow(my2DData, cmap='viridis',norm=LogNorm())  # You can choose different colormaps
+#     # plt.colorbar()  # Optional: Add a colorbar to show the scale
+#     # plt.title('2D Array Visualization')
+#     # plt.show()    # wavelength, convert to m
+#     wavelength = 0.10798* 1e-10 
+#     # pixel_size, convert to m
+#     pixel_size1 = 0.1* 1e-3 # x in Nika, in m
+#     pixel_size2 = 0.1* 1e-3 # y in Nika, in m
+#     # detector_distance, convert to m
+#     detector_distance = 1004.91* 1e-3 
+#     # poni1, point of intercept in y in Nika, in m
+#     # poni2, point of intercept in x in Nika, in m
+#     # read Nika BCX and BCY and convert to m
+#     BCX = 886.7     # x in Nika
+#     BCY = 1048.21   # y in Nika, width in Python
+#     BCY = BCY * pixel_size2 #in m now
+#     BCX = BCX * pixel_size1 #in m now
+#     # read Nika rot1 and rot2 and convert to radians
+#     rotX = 44.7*np.pi/180   # x direction in Nika
+#     rotY = 0.02*np.pi/180   # y direction in Nika
+#     # now corrections based on pyfain-geom2 testing for 45 deg tilt
+#     # first correct distacne:
+#     detector_distance = detector_distance*abs(np.cos(rotX)*np.cos(rotY))
+#     # now calculate poni1 and poni2
+#     # confusingly, the poni1 is realted to BCY and poni2 is related to BCX
+#     # is this issue with reading tiff vs hdf5 image orientations? 
+#     poni2 = BCX + detector_distance*np.tan(rotX)
+#     poni1 = BCY + detector_distance*np.tan(rotY)
+#     rot1=rotX
+#     rot2=rotY              
+ 
+#     #create mask here. Duplicate the my2DData and set all values above 1e7 to NaN
+#     #this is for waxs ONLY, DIFFERENT FOR saxs
+#     mask = np.copy(my2DData)
+#     mask = 0*mask   # set all values to zero
  
 
-    # Define your detector geometry
-    # You need to specify parameters like the detector distance, pixel size, and wavelength
-    #detector_distance = 0.1  # in meters
-    #pixel_size = 0.0001  # in meters
-    #wavelength = 1.54e-10  # in meters (for example, Cu K-alpha)
+#     # Define your detector geometry
+#     # You need to specify parameters like the detector distance, pixel size, and wavelength
+#     #detector_distance = 0.1  # in meters
+#     #pixel_size = 0.0001  # in meters
+#     #wavelength = 1.54e-10  # in meters (for example, Cu K-alpha)
 
-    # Create an AzimuthalIntegrator object
-    ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
-                            pixel1=pixel_size1, pixel2=pixel_size2, 
-                            wavelength=wavelength)
+#     # Create an AzimuthalIntegrator object
+#     ai = AzimuthalIntegrator(dist=detector_distance, poni1=poni1, poni2=poni2, rot1=rot1, rot2=rot2,
+#                             pixel1=pixel_size1, pixel2=pixel_size2, 
+#                             wavelength=wavelength)
 
-    # Perform azimuthal integration
-    # You can specify the number of bins for the integration
-    #set npt to larger of dimmension of my2DData  `
-    npt = max(my2DData.shape)
-    #npt = 1000  # Number of bins
-    q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
-    result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
-    #pp.pprint(result)
-    return result
+#     # Perform azimuthal integration
+#     # You can specify the number of bins for the integration
+#     #set npt to larger of dimmension of my2DData  `
+#     npt = max(my2DData.shape)
+#     #npt = 1000  # Number of bins
+#     q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
+#     result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
+#     #pp.pprint(result)
+#     return result
 
 
 
@@ -224,7 +208,7 @@ def PlotResults(data_dict):
 
 if __name__ == "__main__":
     Sample = dict()
-    Sample=reduceADToQR("/home/parallels/Documents/TiltsTest_waxs_fixedMD","LaB6_tilt5comb_0047.hdf")
+    Sample=reduceADToQR("/home/parallels/Documents/TiltsTest_waxs_fixedMD","LaB6_tilt7v_0049.hdf")
     #Sample["ReducedData"]=test("/home/parallels/Github/Matilda","LaB6_45deg.tif")
     #pp.pprint(Sample)
     PlotResults(Sample)
