@@ -46,10 +46,10 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
             Sample = dict()
             #read various data sets
             logging.info(f"Read file :{filename}")
-            dataset = file['/entry/data/data'] 
+            dataset = hdf_file['/entry/data/data'] 
             my2DData = np.array(dataset)
             #metadata
-            instrument_group = file['/entry/instrument']
+            instrument_group = hdf_file['/entry/instrument']
             instrument_dict = read_group_to_dict(instrument_group)
             #metadata
             keys_to_keep = ['I000_cts', 'I00_cts', 'I00_gain', 'I0_cts', 'I0_gated',
@@ -59,7 +59,7 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
                             'waxs_ccd_tilt_x', 'waxs_ccd_tilt_y', 'waxs_ccd_center_x_pixel', 'waxs_ccd_center_y_pixel',
                             'scaler_freq'                     
                         ]        
-            metadata_group = file['/entry/Metadata']
+            metadata_group = hdf_file['/entry/Metadata']
             metadata_dict = read_group_to_dict(metadata_group)
             metadata_dict = filter_nested_dict(metadata_dict, keys_to_keep)
             # wavelength, keep in A for Fit2D
