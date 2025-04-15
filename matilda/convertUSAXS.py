@@ -365,7 +365,7 @@ def BeamCenterCorrection(data_dict, useGauss=1):
 
         # Calculate the residuals
         y_pred = modifiedGauss(xdata_filtered, *popt)
-        
+
     #use above calculated y_pred to get residuals
     residuals = ydata_filtered - y_pred
 
@@ -487,7 +487,7 @@ if __name__ == "__main__":
     #PlotResults(Sample)
     #flyscan
     Sample = dict()
-    Sample = reduceFlyscanToQR("/home/parallels/Github/Matilda/TestData","USAXS.h5")
+    Sample = reduceFlyscanToQR("./TestData","USAXS.h5")
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
     # Sample["ReducedData"]= CorrectUPDGainsFly(Sample)

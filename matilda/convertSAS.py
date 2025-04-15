@@ -113,6 +113,42 @@ def ImportAndReduceAD(path, filename):
     return result
 
 
+def reduceADToQR(path, filename):
+        tempFilename= os.path.splitext(filename)[0]
+        tempSample = {"RawData":{"Filename": tempFilename}}
+        # label = data_dict["RawData"]["Filename"]
+        # Q_array = data_dict["ReducedData"]["Q_array"]
+        # Intensity = data_dict["ReducedData"]["UPD"]
+        tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
+        #pp.pprint(tempSample)
+        #pp.pprint(tempSample["RawData"]["Filename"])
+        return tempSample
+
+
+def PlotResults(data_dict):
+    # Find Peak center and create Q vector.
+    Q_array = data_dict["ReducedData"]["Q_array"]
+    Intensity = data_dict["ReducedData"]["Intensity"]
+    # Plot ydata against xdata
+    plt.figure(figsize=(6, 12))
+    plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
+    plt.title('Plot of Intensity vs. Q')
+    plt.xlabel('log(Q) [1/A]')
+    plt.ylabel('Intensity')
+    plt.xscale('linear')
+    plt.yscale('linear')
+    plt.grid(True)
+    plt.show()
+
+if __name__ == "__main__":
+    Sample = dict()
+    Sample=reduceADToQR("./TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
+    #Sample["ReducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
+    #pp.pprint(Sample)
+    PlotResults(Sample)
+
+
+
 ## test for tilts using LaB6 45 deg tilted detector from GSAXS-II goes here
 # to the best of my undestanding, the images loaded from tiff file are mirrored and the values here are just weird. 
 # def test(path, filename):
@@ -147,38 +183,3 @@ def ImportAndReduceAD(path, filename):
 #     q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
 #     result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
 #     return result
-
-
-def reduceADToQR(path, filename):
-        tempFilename= os.path.splitext(filename)[0]
-        tempSample = {"RawData":{"Filename": tempFilename}}
-        # label = data_dict["RawData"]["Filename"]
-        # Q_array = data_dict["ReducedData"]["Q_array"]
-        # Intensity = data_dict["ReducedData"]["UPD"]
-        tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
-        #pp.pprint(tempSample)
-        #pp.pprint(tempSample["RawData"]["Filename"])
-        return tempSample
-
-
-def PlotResults(data_dict):
-    # Find Peak center and create Q vector.
-    Q_array = data_dict["ReducedData"]["Q_array"]
-    Intensity = data_dict["ReducedData"]["Intensity"]
-    # Plot ydata against xdata
-    plt.figure(figsize=(6, 12))
-    plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
-    plt.title('Plot of Intensity vs. Q')
-    plt.xlabel('log(Q) [1/A]')
-    plt.ylabel('Intensity')
-    plt.xscale('linear')
-    plt.yscale('linear')
-    plt.grid(True)
-    plt.show()
-
-if __name__ == "__main__":
-    Sample = dict()
-    Sample=reduceADToQR("/home/parallels/Github/Matilda/TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
-    #Sample["ReducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
-    #pp.pprint(Sample)
-    PlotResults(Sample)

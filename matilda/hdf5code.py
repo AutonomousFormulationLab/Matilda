@@ -1,6 +1,6 @@
 '''
     this contains needed hdf5 support for matilda
-    created by Argo on 2023-10-03, not tested yet. 
+    created by Argo on 2025-04-05, not tested yet. 
 
 '''
 import h5py
