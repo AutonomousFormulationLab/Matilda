@@ -423,42 +423,45 @@ def PlotResults(data_dict):
     plt.grid(True)
     plt.show()
 
-def reduceFlyscanToQR(path, filename):
+def reduceFlyscanToQR(path, filename, deleteExisting=False):
     # Open the HDF5 file in read/write mode
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
-            # Check if the group 'DisplayData' exists
-            # if location in hdf_file:
-            #     #print("Group 'root/displayData' already exists.")
-            #      # Delete the group
-            #      #del hdf_file['root/displayData']
-            #      #print("Deleted existing group 'entry/displayData'.") 
-            #     Sample = dict()
-            #     Sample = load_dict_from_hdf5(hdf_file, location)
-            #     return Sample
-            # else:
+            # Check if the group 'displayData' exists
+            if deleteExisting:
+                # Delete the group
+                del hdf_file[location]
+                print("Deleted existing group 'entry/displayData'.")
+
+            if location in hdf_file:
+                # exists, so lets reuse the data from the file
+                Sample = dict()
+                Sample = load_dict_from_hdf5(hdf_file, location)
+                print("Used existing data")
+                return Sample
+            else:
                 Sample = dict()
                 Sample["RawData"]=ImportFlyscan(path, filename)         #import data
                 Sample["ReducedData"]= CorrectUPDGainsFly(Sample)       # Correct gains
                 Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=0)) #Beam center correction
                 Sample["ReducedData"].update(RebinData(Sample))         #Rebin data
-                #pp.pprint(Sample["ReducedData"])
-                #PlotResults(Sample)
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
                 # these are not fully reduced data, this is for web plot purpose. 
-                #save_dict_to_hdf5(Sample, location, hdf_file)
-                # print("Appended new data to 'entry/displayData'.")
+                save_dict_to_hdf5(Sample, location, hdf_file)
+                print("Appended new data to 'entry/displayData'.")
                 return Sample
 
-def reduceStepScanToQR(path, filename):
+def reduceStepScanToQR(path, filename, deleteExisting=False):
   # Open the HDF5 file in read/write mode
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
+        if deleteExisting:
+            # Delete the group
+            del hdf_file[location]
+            print("Deleted existing group 'entry/displayData'.")    
+        
         if location in hdf_file:
-                #print(f"Group {location} already exists.")
-                 # Delete the group
-                 #del hdf_file[location]
-                 #print("Deleted existing group 'entry/displayData'.") 
+                # # exists, reuse existing data
                 Sample = dict()
                 Sample = load_dict_from_hdf5(hdf_file, location)
                 return Sample
@@ -467,8 +470,6 @@ def reduceStepScanToQR(path, filename):
                 Sample["RawData"]=ImportStepScan(path, filename)
                 Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
                 Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=1))
-                #pp.pprint(Sample["ReducedData"])
-                #PlotResults(Sample)
                 # Create the group and dataset for the new data inside the hdf5 file for future use.
                 # these are not fully reduced data, this is for web plot purpose.
                 save_dict_to_hdf5(Sample, location, hdf_file)
@@ -487,7 +488,7 @@ if __name__ == "__main__":
     #PlotResults(Sample)
     #flyscan
     Sample = dict()
-    Sample = reduceFlyscanToQR("./TestData","USAXS.h5")
+    Sample = reduceFlyscanToQR("./TestData","USAXS.h5",deleteExisting=False)
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
     # Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
