@@ -77,6 +77,9 @@ def ImportAndReduceAD(path, filename):
         mask = np.copy(my2DData)
         mask = 0*mask   # set all values to zero
         mask[my2DData > 1e7] = 1
+        mask[:, 511:516] = 1
+        mask[:, 1026:1041] = 1
+        mask[:, 1551:1556] = 1
     else:
         mask = np.copy(my2DData)
         mask = 0*mask   # set all values to zero

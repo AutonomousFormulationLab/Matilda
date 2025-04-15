@@ -119,7 +119,7 @@ def GetListOfScans(plan_name):
 
 
     
-#
+# Here we process different types of scans
 # Process the Flyscan data files
 def processFlyscans(ListOfScans):
     results=[]
@@ -148,7 +148,7 @@ def processStepscans(ListOfScans):
     #print("Done processing the Step scans")
     return results
 
-
+# Process SAXS and WAXS data files
 def processSASdata(ListOfScans):
     results=[]
     for scan in ListOfScans:
@@ -198,13 +198,13 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
             plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
         else:
             plt.savefig('/share1/local_livedata/stepusaxs.jpg', format='jpg', dpi=300) # this step scan
+        plt.close()
     else:
         if isFlyscan:
             plt.savefig('usaxs.jpg', format='jpg', dpi=300)
         else:
             plt.savefig('stepusaxs.jpg', format='jpg', dpi=300) # this step scan
-    plt.show()
-    #plt.close()
+        plt.show()
 
 def plotSWAXSResults(ListOfresults, isSAXS = True):  
     # Number of data sets
@@ -238,8 +238,10 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         current_hostname = socket.gethostname()
         if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
             plt.savefig('/share1/local_livedata/saxs.jpg', format='jpg', dpi=300)
+            plt.close()
         else:
             plt.savefig('saxs.jpg', format='jpg', dpi=300)
+        plt.show()
     else:
         plt.title('Plot of WAXS Intensity vs. Q')   
         plt.xlabel('Q [1/A]')
@@ -253,10 +255,10 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         current_hostname = socket.gethostname()
         if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
             plt.savefig('/share1/local_livedata/waxs.jpg', format='jpg', dpi=300)
+            plt.close()
         else:
             plt.savefig('waxs.jpg', format='jpg', dpi=300)
-    plt.show()
-    #plt.close()
+        plt.show()
 
 
 if __name__ == "__main__":

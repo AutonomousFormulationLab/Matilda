@@ -363,8 +363,10 @@ def BeamCenterCorrection(data_dict, useGauss=1):
         else:
             fwhm = np.nan  # FWHM cannot be determined
 
-    # Calculate the residuals
-    y_pred = modifiedGauss(xdata_filtered, *popt)
+        # Calculate the residuals
+        y_pred = modifiedGauss(xdata_filtered, *popt)
+        
+    #use above calculated y_pred to get residuals
     residuals = ydata_filtered - y_pred
 
         # Calculate the chi-square
