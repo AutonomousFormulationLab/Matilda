@@ -3,14 +3,14 @@ Here we develop new code which then moves to proper package
 '''
 import h5py
 import numpy as np
-from scipy.optimize import curve_fit
+#from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
+#from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
 from convertUSAXS import rebinData
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
-from convertUSAXS import importFlyscan, correctUPDGainsFly, beamCenterCorrection
+#from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection
 
 
 
@@ -36,8 +36,8 @@ def reduceFlyscan(path, filename, deleteExisting=False):
             # else:
                 Sample = dict()
                 Sample["RawData"]=importFlyscan(path, filename)         #import data
-                Sample["ReducedData"]= correctUPDGainsFly(Sample)       # Correct gains
-                Sample["ReducedData"]= calculatePDError(Sample)         # Calculate UPD error                
+                Sample["ReducedData"]= calculatePD_Fly(Sample)       # Correct gains
+                Sample["ReducedData"].update(calculatePDError(Sample))         # Calculate UPD error                
                 Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
                 # TODO: need to create errors wave here
                 # TODO: Blank/background subtraction
@@ -56,22 +56,46 @@ def reduceFlyscan(path, filename, deleteExisting=False):
 
 def calculatePDError(Sample):
     #OK, another incarnation of the error calculations...
-    USAXS_PD = Sample["ReducedData"]["UPD"]
+    UPD_array = Sample["RawData"]["UPD_array"]
+    # USAXS_PD = Sample["ReducedData"]["PD_intensity"]
     #MeasTime = Sample["RawData"]["TimePerPoint"]
     UPD_gains=Sample["ReducedData"]["UPD_gains"]
     Frequency=1e6   #this is frequency of clock fed into mca1
     Monitor = Sample["RawData"]["Monitor"]
-    I0AmpGain=Sample["ReducedData"]["I0AmpGain"]
-    VToFFactor=1e6
-    SigmaUSAXSPD=np.sqrt(USAXS_PD*(1+0.0001*USAXS_PD))		#this is our USAXS_PD error estimate, Poisson error + 1% of value
+    I0AmpGain=Sample["RawData"]["metadata"]["I0AmpGain"]
+    VToFFactor = Sample["RawData"]["VToFFactor"]/10      #this is mca1 frequency, HDF5 writer 1.3 and above needs /10 
+    SigmaUSAXSPD=np.sqrt(UPD_array*(1+0.0001*UPD_array))		#this is our USAXS_PD error estimate, Poisson error + 1% of value
 	#SigmaPDwDC=np.sqrt(SigmaUSAXSPD^2+(MeasTime*ErrorParameters[UPD_gains-1])^2) #This should be measured error for background
     SigmaPDwDC=SigmaUSAXSPD/(Frequency*UPD_gains)
-    A=(USAXS_PD)/(VToFFactor*UPD_gains)		#without dark current subtraction
+    A=(UPD_array)/(VToFFactor[0]*UPD_gains)		#without dark current subtraction
     SigmaMonitor= np.sqrt(Monitor)		            #these calculations were done for 10^6 
     ScaledMonitor = Monitor
-    SigmaRwave=np.sqrt((A^2*SigmaMonitor^4)+(SigmaPDwDC^2*ScaledMonitor^4)+((A^2+SigmaPDwDC^2)*ScaledMonitor^2*SigmaMonitor^2))
-    SigmaRwave=SigmaRwave/(ScaledMonitor*(ScaledMonitor^2-SigmaMonitor^2))
+    SigmaRwave=np.sqrt((A**2 * SigmaMonitor**4)+(SigmaPDwDC**2 * ScaledMonitor**4)+((A**2 + SigmaPDwDC**2) * ScaledMonitor**2 * SigmaMonitor**2))
+    SigmaRwave=SigmaRwave/(ScaledMonitor*(ScaledMonitor**2-SigmaMonitor**2))
     SigmaRwave=SigmaRwave * I0AmpGain			#fix for use of I0 gain here, the numbers were too low due to scaling of PD by I0AmpGain
     PD_error=SigmaRwave/5		#2025-04 these values are simply too large on new APS-U USAXS instrument
     result = {"PD_error":PD_error}
     return result
+
+
+
+def test_matildaLocal():
+
+    Sample = dict()
+    #does the file exists?
+    # e = os.path.isfile("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/USAXS.h5")
+    # if not e:
+    #     print("File not found")
+    #     return
+    # else:
+    #     print("File found")
+    #open the file
+    Sample = reduceFlyscan("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData","USAXS.h5",deleteExisting=True)    
+    Q_array = Sample["ReducedData"]["Q_array"]
+    UPD = Sample["ReducedData"]["PD_intensity"]
+    Error = Sample["ReducedData"]["PD_error"]
+ 
+
+if __name__ == "__main__":
+    #test_matilda()
+    test_matildaLocal()

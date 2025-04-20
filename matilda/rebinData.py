@@ -44,7 +44,8 @@ def rebin_QRSdata(Wx, Wy, Ws, NumberOfPoints):
 
     MinStep = Wx_greater[1] - Wx_greater[0]
 
-    Wx_greater2, Wy_greater2, Ws_greater2, W3, W4, W5, Wsdev, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep, Wsdev=Ws_greater, Wxsdev=None, Wxwidth=None, W1=None, W2=None, W3=None, W4=None, W5=None)
+    Wx_greater2, Wy_greater2, W1, W2, W3, W4, W5, Ws_greater2, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep, Wsdev=Ws_greater, Wxsdev=None, Wxwidth=None, W1=None, W2=None, W3=None, W4=None, W5=None)
+
 
     Q_merged = np.concatenate((Wx_less, Wx_greater2))
     Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      

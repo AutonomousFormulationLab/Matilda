@@ -161,7 +161,7 @@ def processSASdata(ListOfScans):
             pass
     #print("Done processing the AD data")
     return results
-
+ 
 def plotUSAXSResults(ListOfresults, isFlyscan=True):  
     # Number of data sets
     num_data_sets = len(ListOfresults)
@@ -179,7 +179,7 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
         data_dict = ListOfresults[i]
         label = data_dict["RawData"]["Filename"]
         Q_array = data_dict["ReducedData"]["Q_array"]
-        UPD = data_dict["ReducedData"]["UPD"]
+        UPD = data_dict["ReducedData"]["PD_intensity"]
         plt.plot(Q_array, UPD, color=color, linestyle='-', label=label)  # You can customize the marker and linestyle
     
     plt.title('Plot of UPD vs. Q')

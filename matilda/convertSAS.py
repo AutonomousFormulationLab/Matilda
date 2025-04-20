@@ -141,7 +141,7 @@ def reduceADToQR(path, filename):
         tempSample = {"RawData":{"Filename": tempFilename}}
         # label = data_dict["RawData"]["Filename"]
         # Q_array = data_dict["ReducedData"]["Q_array"]
-        # Intensity = data_dict["ReducedData"]["UPD"]
+        # Intensity = data_dict["ReducedData"]["PD_intensity"]
         tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
         #pp.pprint(tempSample)
         #pp.pprint(tempSample["RawData"]["Filename"])

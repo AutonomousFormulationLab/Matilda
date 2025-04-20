@@ -52,7 +52,9 @@ def importFlyscan(path, filename):
         dataset = file['/entry/flyScan/changes_DDPCA300_ampReqGain'] 
         AmpReqGain = np.ravel(np.array(dataset))
         dataset = file['/entry/flyScan/changes_DDPCA300_mcsChan'] 
-        Channel = np.ravel(np.array(dataset))    
+        Channel = np.ravel(np.array(dataset))            
+        dataset = file['/entry/flyScan/mca_clock_frequency'] 
+        vTof = np.ravel(np.array(dataset))    
         #metadata
         keys_to_keep = ['AR_center', 'ARenc_0', 'DCM_energy', 'DCM_theta', 'I0AmpGain',
                         'UPDsize', 'trans_I0_counts', 'trans_I0_gain', 'upd_bkg0', 'upd_bkg1','upd_bkg2','upd_bkg3',
@@ -79,6 +81,7 @@ def importFlyscan(path, filename):
                 "UPD_array": UPD_array,
                 "AmpGain": AmpGain,
                 "Channel": Channel,
+                "VToFFactor": vTof,
                 "AmpReqGain": AmpReqGain,
                 "metadata": metadata_dict,
                 "instrument": instrument_dict,
@@ -87,7 +90,7 @@ def importFlyscan(path, filename):
     return data_dict
 
 # 
-def correctUPDGainsFly(data_dict):
+def calculatePD_Fly(data_dict):
         # create the gains array and corrects UPD for it.
         # Masks deadtimes and range changes
         # get the needed data from dictionary
@@ -100,6 +103,7 @@ def correctUPDGainsFly(data_dict):
     UPD_array = data_dict["RawData"]["UPD_array"]
     TimePerPoint = data_dict["RawData"]["TimePerPoint"]
     Monitor = data_dict["RawData"]["Monitor"]
+    VToFFactor = data_dict["RawData"]["VToFFactor"]
 
     
         # Create Gains arrays - one for requested and one for real
@@ -128,6 +132,7 @@ def correctUPDGainsFly(data_dict):
         # Create a new array res with the same shape as AmpGain_array, initialized with NaN
     GainsIndx = np.full(AmpGain_array.shape, np.nan)
     Gains = np.full(AmpGain_array.shape, np.nan)
+    updBkg = np.full(AmpGain_array.shape, np.nan)
 
         # Use a boolean mask to find where two arrays agree
     mask = AmpGain_array == AmpGainReq_array
@@ -141,14 +146,17 @@ def correctUPDGainsFly(data_dict):
 
         #next, replace the values in Gains array with values looked up from metadata dictionary
         #for now, lets look only for DDPCA300_gain+"gainNumber"
+        # also need to create gain measureds background 'upd_bkg0', 'upd_bkg1','upd_bkg2','upd_bkg3', 'upd_bkg4'
     for i in range(0, len(GainsIndx)-1, 1):
         if np.isnan(GainsIndx[i]):
             continue
         gainName = 'DDPCA300_gain'+str(int(GainsIndx[i]))
         Gains[i] = metadata_dict[gainName]
+        updBkgName = 'upd_bkg'+str(int(GainsIndx[i]))
+        updBkg[i] =  metadata_dict[updBkgName]
 
         #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
-    Frequency=1e6   #this is frequency of clock fed ito mca1
+    Frequency=VToFFactor[0]/10   #this is frequency of clock fed ito mca1/10 for HDF5 writer 1.3 and higher
     TimeInSec = TimePerPoint/Frequency
     #print("Exp. time :", sum(TimeInSec))
     for i in range(0, len(Channel)-1, 1):
@@ -165,9 +173,10 @@ def correctUPDGainsFly(data_dict):
             indx += 1
 
         #Correct UPD for gains and monitor counts and amplifier gain. 
-    UPD_corrected = UPD_array/(Monitor/I0AmpGain)/(Gains)     
-    PD_error = 0.01*UPD_corrected   #this is fake error for QR conversion
-    result = {"UPD":UPD_corrected,
+        # Frequency=1e6  #this is to keep in sync with Igor code. 
+    PD_Intensity = ((UPD_array-TimeInSec*updBkg)/(Frequency*Gains)) / (Monitor/I0AmpGain)  
+    PD_error = 0.01*PD_Intensity   #this is fake error for QR conversion
+    result = {"PD_intensity":PD_Intensity,
               "PD_error":PD_error,
               "UPD_gains":Gains}
     return result
@@ -175,11 +184,11 @@ def correctUPDGainsFly(data_dict):
 def rebinData(data_dict):
     # Rebin data to 200+peak area points.
     Q_array = data_dict["ReducedData"]["Q_array"]
-    R_array = data_dict["ReducedData"]["UPD"]
+    R_array = data_dict["ReducedData"]["PD_intensity"]
     S_array = data_dict["ReducedData"]["PD_error"]
     Q_arrayNew, R_arrayNew, S_arrayNew = rebin_QRSdata(Q_array, R_array,S_array, 200)
     results = {"Q_array":Q_arrayNew,
-            "UPD":R_arrayNew,
+            "PD_intensity":R_arrayNew,
             "PD_error":S_arrayNew  
             }
     return results
@@ -277,7 +286,7 @@ def CorrectUPDGainsStep(data_dict):
 
         #Correct UPD for gains and monitor
     UPD_corrected = (UPD_array*I0gain)/(AmpGain*Monitor)
-    result = {"UPD":UPD_corrected}
+    result = {"PD_intensity":UPD_corrected}
     return result
 
 ## Common steps go here
@@ -287,7 +296,7 @@ def beamCenterCorrection(data_dict, useGauss=1):
         #ReducedData = data_dict["ReducedData"]
     ARangles = data_dict["RawData"]["ARangles"]
     instrument_dict = data_dict["RawData"]["instrument"]
-    UPD_array = data_dict["ReducedData"]["UPD"]
+    UPD_array = data_dict["ReducedData"]["PD_intensity"]
         #plt.figure(figsize=(6, 12))
         #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
         # Remove NaN values from both xdata and ydata
@@ -403,7 +412,7 @@ def beamCenterCorrection(data_dict, useGauss=1):
 def PlotResults(data_dict):
         # Plot UPD vs Q.
     Q_array = data_dict["ReducedData"]["Q_array"]
-    UPD = data_dict["ReducedData"]["UPD"]
+    UPD = data_dict["ReducedData"]["PD_intensity"]
     
         # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
@@ -416,7 +425,8 @@ def PlotResults(data_dict):
     plt.grid(True)
     plt.show()
 
-def reduceFlyscanToQR(path, filename, deleteExisting=False):
+# TODO: remove deleteExisting=True for operations
+def reduceFlyscanToQR(path, filename, deleteExisting=True):
     # Open the HDF5 file in read/write mode
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
@@ -435,7 +445,7 @@ def reduceFlyscanToQR(path, filename, deleteExisting=False):
             else:
                 Sample = dict()
                 Sample["RawData"]=importFlyscan(path, filename)         #import data
-                Sample["ReducedData"]= correctUPDGainsFly(Sample)       # Correct gains
+                Sample["ReducedData"]= calculatePD_Fly(Sample)       # Correct gains
                 Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
                 Sample["ReducedData"].update(rebinData(Sample))         #Rebin data
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
@@ -443,8 +453,8 @@ def reduceFlyscanToQR(path, filename, deleteExisting=False):
                 save_dict_to_hdf5(Sample, location, hdf_file)
                 print("Appended new data to 'entry/displayData'.")
                 return Sample
-
-def reduceStepScanToQR(path, filename, deleteExisting=False):
+# TODO: remove deleteExisting=True for operations
+def reduceStepScanToQR(path, filename, deleteExisting=True):
   # Open the HDF5 file in read/write mode
     location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:

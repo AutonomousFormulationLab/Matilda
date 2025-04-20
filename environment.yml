@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python=3.12.3
   - numpy
-  - h5py
+  - tifffile
   - pandas
   - scipy
   - matplotlib
@@ -15,5 +15,7 @@ dependencies:
   - xarray
   - requests
   - pip
-  - tifffile
+  
+  - pip:
+    - h5py
 
