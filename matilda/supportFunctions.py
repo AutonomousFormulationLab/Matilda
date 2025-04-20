@@ -6,6 +6,25 @@ import logging
 import copy
 import xarray as xr
 ## support stuff here
+
+# Function to check if all arrays have the same length
+def check_arrays_same_length(*arrays):
+    lengths = [arr.size for arr in arrays]  # Get the size of each array
+    if len(set(lengths)) != 1:  # Check if all lengths are the same
+        raise ValueError("Not all arrays have the same length.")
+    #else:
+        #print("All arrays have the same length.")
+
+# Gaussian function
+def gaussian(x, a, x0, sigma):
+    return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
+
+#modified gaussian function, gives better fits to peak profiles. 
+def modifiedGauss(xvar, a, x0, sigma, dparameter):
+    return a * np.exp(-(np.abs(xvar - x0) / (2*sigma)) ** dparameter)
+
+
+
 # Function to recursively read a group and store its datasets in a dictionary
 def read_group_to_dict(group):
     data_dict = {}

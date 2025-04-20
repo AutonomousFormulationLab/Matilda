@@ -17,32 +17,18 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import read_group_to_dict, filter_nested_dict
+from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
+from supportFunctions import gaussian, modifiedGauss
 import os
-from rebinData import rebin_QRdata
+from rebinData import rebin_QRSdata
 from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 
-# Function to check if all arrays have the same length
-def check_arrays_same_length(*arrays):
-    lengths = [arr.size for arr in arrays]  # Get the size of each array
-    if len(set(lengths)) != 1:  # Check if all lengths are the same
-        raise ValueError("Not all arrays have the same length.")
-    #else:
-        #print("All arrays have the same length.")
+## Flyscan main code here
 
-# Gaussian function
-def gaussian(x, a, x0, sigma):
-    return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
-
-#modified gaussian function, gives better fits to peak profiles. 
-def modifiedGauss(xvar, a, x0, sigma, dparameter):
-    return a * np.exp(-(np.abs(xvar - x0) / (2*sigma)) ** dparameter)
-
-
-## main code here
-def ImportFlyscan(path, filename):
+## importFlyscan loads data from flyscan NX file. It shoudl be same for QR pass as well as for calibrated data processing. 
+def importFlyscan(path, filename):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
     with h5py.File(path+"/"+filename, 'r') as file:
         #read various data sets
@@ -100,7 +86,106 @@ def ImportFlyscan(path, filename):
     
     return data_dict
 
-## main code here
+# 
+def correctUPDGainsFly(data_dict):
+        # create the gains array and corrects UPD for it.
+        # Masks deadtimes and range changes
+        # get the needed data from dictionary
+    ARangles = data_dict["RawData"]["ARangles"]
+    AmpGain = data_dict["RawData"]["AmpGain"]
+    AmpReqGain = data_dict["RawData"]["AmpReqGain"]
+    Channel = data_dict["RawData"]["Channel"]
+    metadata_dict = data_dict["RawData"]["metadata"]
+    instrument_dict = data_dict["RawData"]["instrument"]
+    UPD_array = data_dict["RawData"]["UPD_array"]
+    TimePerPoint = data_dict["RawData"]["TimePerPoint"]
+    Monitor = data_dict["RawData"]["Monitor"]
+
+    
+        # Create Gains arrays - one for requested and one for real
+    I0AmpGain = metadata_dict["I0AmpGain"]
+    num_elements = UPD_array.size 
+    AmpGain_array = np.full(num_elements, AmpGain[len(AmpGain)-1])
+    AmpGainReq_array = np.full(num_elements,AmpGain[len(AmpReqGain)-1])
+
+        # Iterate over the Channel array to get index pairs
+    for i in range(0, len(Channel)-2, 1):
+        start_index = int(Channel[i])
+        end_index = int(Channel[i + 1])
+            
+        # Ensure indices are within bounds
+        if start_index < 0 or end_index > len(AmpGain_array) or start_index > end_index:
+            raise ValueError("Invalid index range in Channel array.")
+        
+        # Fill the new array with AmpGain and AmpGainReq values between the two indices
+        if(start_index!=end_index):
+            AmpGain_array[start_index:end_index] = AmpGain[i]    
+            AmpGainReq_array[start_index:end_index] = AmpReqGain[i]
+        else:
+            AmpGain_array[start_index] = AmpGain[i]    
+            AmpGainReq_array[start_index] = AmpReqGain[i]
+
+        # Create a new array res with the same shape as AmpGain_array, initialized with NaN
+    GainsIndx = np.full(AmpGain_array.shape, np.nan)
+    Gains = np.full(AmpGain_array.shape, np.nan)
+
+        # Use a boolean mask to find where two arrays agree
+    mask = AmpGain_array == AmpGainReq_array
+
+        # Set the values in res where two agree
+    GainsIndx[mask] = AmpGain_array[mask]
+        #set to Nan also points in channel array that are not in mask
+    for i in range(0, len(Channel)-2, 1):
+        s = int(Channel[i])
+        GainsIndx[s] = np.nan
+
+        #next, replace the values in Gains array with values looked up from metadata dictionary
+        #for now, lets look only for DDPCA300_gain+"gainNumber"
+    for i in range(0, len(GainsIndx)-1, 1):
+        if np.isnan(GainsIndx[i]):
+            continue
+        gainName = 'DDPCA300_gain'+str(int(GainsIndx[i]))
+        Gains[i] = metadata_dict[gainName]
+
+        #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
+    Frequency=1e6   #this is frequency of clock fed ito mca1
+    TimeInSec = TimePerPoint/Frequency
+    #print("Exp. time :", sum(TimeInSec))
+    for i in range(0, len(Channel)-1, 1):
+        startPnt=Channel[i]
+        deadtimeName = 'upd_amp_change_mask_time'+str(int(AmpReqGain[i]))
+        deadtime = metadata_dict[deadtimeName]
+        elapsed = 0
+        indx = int(startPnt)
+        while elapsed < deadtime:
+            elapsed+=TimeInSec[indx]
+            Gains[indx]=np.nan
+            #print("Index is:", indx)
+            #print("elapsed time is:",elapsed) 
+            indx += 1
+
+        #Correct UPD for gains and monitor counts and amplifier gain. 
+    UPD_corrected = UPD_array/(Monitor/I0AmpGain)/(Gains)     
+    PD_error = 0.01*UPD_corrected   #this is fake error for QR conversion
+    result = {"UPD":UPD_corrected,
+              "PD_error":PD_error,
+              "UPD_gains":Gains}
+    return result
+
+def rebinData(data_dict):
+    # Rebin data to 200+peak area points.
+    Q_array = data_dict["ReducedData"]["Q_array"]
+    R_array = data_dict["ReducedData"]["UPD"]
+    S_array = data_dict["ReducedData"]["PD_error"]
+    Q_arrayNew, R_arrayNew, S_arrayNew = rebin_QRSdata(Q_array, R_array,S_array, 200)
+    results = {"Q_array":Q_arrayNew,
+            "UPD":R_arrayNew,
+            "PD_error":S_arrayNew  
+            }
+    return results
+
+
+## Stepscan main code here
 def ImportStepScan(path, filename):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
     with h5py.File(path+"/"+filename, 'r') as file:
@@ -195,91 +280,8 @@ def CorrectUPDGainsStep(data_dict):
     result = {"UPD":UPD_corrected}
     return result
 
-
-def CorrectUPDGainsFly(data_dict):
-        # create the gains array and corrects UPD for it.
-        # Masks deadtimes and range changes
-        # get the needed data from dictionary
-    ARangles = data_dict["RawData"]["ARangles"]
-    AmpGain = data_dict["RawData"]["AmpGain"]
-    AmpReqGain = data_dict["RawData"]["AmpReqGain"]
-    Channel = data_dict["RawData"]["Channel"]
-    metadata_dict = data_dict["RawData"]["metadata"]
-    instrument_dict = data_dict["RawData"]["instrument"]
-    UPD_array = data_dict["RawData"]["UPD_array"]
-    TimePerPoint = data_dict["RawData"]["TimePerPoint"]
-    Monitor = data_dict["RawData"]["Monitor"]
-
-    
-        # Create Gains arrays - one for requested and one for real
-    I0AmpGain = metadata_dict["I0AmpGain"]
-    num_elements = UPD_array.size 
-    AmpGain_array = np.full(num_elements, AmpGain[len(AmpGain)-1])
-    AmpGainReq_array = np.full(num_elements,AmpGain[len(AmpReqGain)-1])
-
-        # Iterate over the Channel array to get index pairs
-    for i in range(0, len(Channel)-2, 1):
-        start_index = int(Channel[i])
-        end_index = int(Channel[i + 1])
-            
-        # Ensure indices are within bounds
-        if start_index < 0 or end_index > len(AmpGain_array) or start_index > end_index:
-            raise ValueError("Invalid index range in Channel array.")
-        
-        # Fill the new array with AmpGain and AmpGainReq values between the two indices
-        if(start_index!=end_index):
-            AmpGain_array[start_index:end_index] = AmpGain[i]    
-            AmpGainReq_array[start_index:end_index] = AmpReqGain[i]
-        else:
-            AmpGain_array[start_index] = AmpGain[i]    
-            AmpGainReq_array[start_index] = AmpReqGain[i]
-
-        # Create a new array res with the same shape as AmpGain_array, initialized with NaN
-    GainsIndx = np.full(AmpGain_array.shape, np.nan)
-    Gains = np.full(AmpGain_array.shape, np.nan)
-
-        # Use a boolean mask to find where two arrays agree
-    mask = AmpGain_array == AmpGainReq_array
-
-        # Set the values in res where two agree
-    GainsIndx[mask] = AmpGain_array[mask]
-        #set to Nan also points in channel array that are not in mask
-    for i in range(0, len(Channel)-2, 1):
-        s = int(Channel[i])
-        GainsIndx[s] = np.nan
-
-        #next, replace the values in Gains array with values looked up from metadata dictionary
-        #for now, lets look only for DDPCA300_gain+"gainNumber"
-    for i in range(0, len(GainsIndx)-1, 1):
-        if np.isnan(GainsIndx[i]):
-            continue
-        gainName = 'DDPCA300_gain'+str(int(GainsIndx[i]))
-        Gains[i] = metadata_dict[gainName]
-
-        #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
-    Frequency=1e6   #this is frequency of clock fed ito mca1
-    TimeInSec = TimePerPoint/Frequency
-    #print("Exp. time :", sum(TimeInSec))
-    for i in range(0, len(Channel)-1, 1):
-        startPnt=Channel[i]
-        deadtimeName = 'upd_amp_change_mask_time'+str(int(AmpReqGain[i]))
-        deadtime = metadata_dict[deadtimeName]
-        elapsed = 0
-        indx = int(startPnt)
-        while elapsed < deadtime:
-            elapsed+=TimeInSec[indx]
-            Gains[indx]=np.nan
-            #print("Index is:", indx)
-            #print("elapsed time is:",elapsed) 
-            indx += 1
-
-        #Correct UPD for gains and monitor counts and amplfiier gain. 
-    UPD_corrected = UPD_array/(Monitor/I0AmpGain)/(Gains)     
-    
-    result = {"UPD":UPD_corrected}
-    return result
-
-def BeamCenterCorrection(data_dict, useGauss=1):
+## Common steps go here
+def beamCenterCorrection(data_dict, useGauss=1):
     # Find Peak center and create Q vector.
         #RawData=data_dict["rawData"]
         #ReducedData = data_dict["ReducedData"]
@@ -397,15 +399,6 @@ def BeamCenterCorrection(data_dict, useGauss=1):
             }
     return results
 
-def RebinData(data_dict):
-    # Rebin data to 200+peak area points.
-    Q_array = data_dict["ReducedData"]["Q_array"]
-    R_array = data_dict["ReducedData"]["UPD"]
-    Q_arrayNew, R_arrayNew = rebin_QRdata(Q_array, R_array, 200)
-    results = {"Q_array":Q_arrayNew,
-            "UPD":R_arrayNew  
-            }
-    return results
 
 def PlotResults(data_dict):
         # Plot UPD vs Q.
@@ -441,10 +434,10 @@ def reduceFlyscanToQR(path, filename, deleteExisting=False):
                 return Sample
             else:
                 Sample = dict()
-                Sample["RawData"]=ImportFlyscan(path, filename)         #import data
-                Sample["ReducedData"]= CorrectUPDGainsFly(Sample)       # Correct gains
-                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=0)) #Beam center correction
-                Sample["ReducedData"].update(RebinData(Sample))         #Rebin data
+                Sample["RawData"]=importFlyscan(path, filename)         #import data
+                Sample["ReducedData"]= correctUPDGainsFly(Sample)       # Correct gains
+                Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
+                Sample["ReducedData"].update(rebinData(Sample))         #Rebin data
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
                 # these are not fully reduced data, this is for web plot purpose. 
                 save_dict_to_hdf5(Sample, location, hdf_file)
@@ -469,7 +462,7 @@ def reduceStepScanToQR(path, filename, deleteExisting=False):
                 Sample = dict()
                 Sample["RawData"]=ImportStepScan(path, filename)
                 Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-                Sample["ReducedData"].update(BeamCenterCorrection(Sample,useGauss=1))
+                Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=1))
                 # Create the group and dataset for the new data inside the hdf5 file for future use.
                 # these are not fully reduced data, this is for web plot purpose.
                 save_dict_to_hdf5(Sample, location, hdf_file)

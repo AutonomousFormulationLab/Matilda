@@ -22,7 +22,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 
-def rebin_QRdata(Wx, Wy, NumberOfPoints):
+def rebin_QRSdata(Wx, Wy, Ws, NumberOfPoints):
     '''
     Rebin data based on the condition Q < 0.0002 and Q > 0.0002.
     This function will split the data into two parts and rebin the second part using logarithmic scaling.
@@ -34,19 +34,22 @@ def rebin_QRdata(Wx, Wy, NumberOfPoints):
     mask_less = Wx < 0.0002
     Wx_less = Wx[mask_less]
     Wy_less = Wy[mask_less]
+    Ws_less = Ws[mask_less]
 
     # Split arrays based on the condition Q > 0.0002
     mask_greater = Wx > 0.0002
     Wx_greater = Wx[mask_greater]
     Wy_greater = Wy[mask_greater]
+    Ws_greater = Ws[mask_greater]
 
     MinStep = Wx_greater[1] - Wx_greater[0]
 
-    Wx_greater2, Wy_greater2, W1, W2, W3, W4, W5, Wsdev, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep)
+    Wx_greater2, Wy_greater2, Ws_greater2, W3, W4, W5, Wsdev, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep, Wsdev=Ws_greater, Wxsdev=None, Wxwidth=None, W1=None, W2=None, W3=None, W4=None, W5=None)
 
     Q_merged = np.concatenate((Wx_less, Wx_greater2))
     Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      
-    return Q_merged, Intensity_merged
+    Error_merged = np.concatenate((Ws_less, Ws_greater2))      
+    return Q_merged, Intensity_merged, Error_merged
 
 
 
