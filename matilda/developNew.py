@@ -6,11 +6,11 @@ import numpy as np
 #from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-#from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
+from supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
 from convertUSAXS import rebinData
 #from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
-from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection
+from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
 
 
 
@@ -35,31 +35,128 @@ def reduceFlyscan(path, filename, deleteExisting=False):
             #     return Sample
             # else:
                 Sample = dict()
-                Sample["RawData"]=importFlyscan(path, filename)         #import data
-                Sample["ReducedData"]= calculatePD_Fly(Sample)       # Correct gains
-                Sample["ReducedData"].update(calculatePDError(Sample))         # Calculate UPD error                
+                Sample["RawData"]=importFlyscan(path, filename)                 #import data
+                Sample["ReducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
+                Sample["ReducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
                 Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
-                # TODO: need to create errors wave here
+                Sample["ReducedData"].update(smooth_r_data(Sample["ReducedData"]["PD_intensity"],     #smooth data data
+                                                        Sample["ReducedData"]["Q_array"], 
+                                                        Sample["ReducedData"]["PD_range"], 
+                                                        Sample["ReducedData"]["PD_error"], 
+                                                        Sample["RawData"]["TimePerPoint"] ))                 
+                Sample["BlankData"]=getBlankFlyscan()
+                Sample["ReducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
+                Sample["CalibratedData"]=(calibrateAndSubtractFlyscan(Sample))
+                #pp.pprint(Sample)
                 # TODO: Blank/background subtraction
                 # TODO:     figure out proper blank and if needed, reduce to BL_QRS
                 # TODO: calibration
                 # TODO: fix rebinning for 3 input waves returning 4 waves with dQ
-                Sample["ReducedData"].update(rebinData(Sample))         #Rebin data
+                Sample["CalibratedData"].update(rebinData(Sample, num_points=500, isSMRData=True))         #Rebin data
                 # TODO: desmearing here
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
                 #save_dict_to_hdf5(Sample, location, hdf_file)
                 #print("Appended new data to 'entry/displayData'.")
                 return Sample
 
+def normalizeBlank(Sample):
+    # This is a simple normalization of the blank data to the sample data. 
+    # It will be used for background subtraction.
+    PeakIntensitySample = Sample["ReducedData"]["Maximum"]
+    PeakIntensityBlank = Sample["BlankData"]["Maximum"]
+    PeakToPeakTransmission = PeakIntensitySample/PeakIntensityBlank
+    PD_intensity = Sample["ReducedData"]["PD_intensity"]
+    PD_intensity = PD_intensity / PeakToPeakTransmission
+    PD_error = Sample["ReducedData"]["PD_error"]
+    PD_error = PD_error / PeakToPeakTransmission
+    result = {"PD_intensity":PD_intensity,
+            "PD_error":PD_error}
+    return result
+    
+
+def calibrateAndSubtractFlyscan(Sample):
+    # This is a step wehre we subtract and calibrate the sample and Blank. 
+    PD_intensity = Sample["ReducedData"]["PD_intensity"]
+    BL_PD_intensity = Sample["BlankData"]["PD_intensity"]
+    PD_error = Sample["ReducedData"]["PD_error"]
+    BL_PD_error = Sample["BlankData"]["PD_error"]
+    Q_array = Sample["ReducedData"]["Q_array"]
+    BL_Q_array = Sample["BlankData"]["Q_array"]
+
+    SMR_Qvec, SMR_Int, SMR_Error = subtract_data(Q_array, PD_intensity,PD_error, BL_Q_array, BL_PD_intensity, BL_PD_error)
+    # TODO: trim, calibrate, 
+    # find Qmin as the first point where we get above 3% of the background avleu and larger than instrument resolution
+    IntRatio = PD_intensity / BL_PD_intensity
+    # find point where the IntRatio is larger than 1.03
+    FWHMSample = Sample["ReducedData"]["FWHM"]
+    FWHMBlank = Sample["BlankData"]["FWHM"]
+    wavelength =  Sample["ReducedData"]["wavelength"]
+    QminSample = 4*np.pi*np.sin(np.radians(FWHMSample)/2)/wavelength
+    QminBlank = 4*np.pi*np.sin(np.radians(FWHMBlank)/2)/wavelength
+    indexSample = np.searchsorted(Q_array, QminSample)
+    indexBlank = np.searchsorted(Q_array, QminBlank)
+    indexRatio =  np.searchsorted(IntRatio, 1.03)
+    largest_value = max(indexSample, indexBlank, indexRatio)
+    SMR_Qvec = SMR_Qvec[largest_value-1 : ]    
+    SMR_Int = SMR_Int[largest_value-1 : ]    
+    SMR_Error = SMR_Error[largest_value-1 : ]
+
+    return {"SMR_Qvec":SMR_Qvec,
+            "SMR_Int":SMR_Int,
+            "SMR_Error":SMR_Error}
+
+def getBlankFlyscan():
+      # need to get proper info from tiled on last collected Blank
+      # for now fake by uusing defalut from test data
+      # Then either get data from file, if exist or reduce, append, and return. 
+      # We need the BL_QRS and calibration data.
+    BlankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
+    BlankFile="HeaterBlank_0060.h5"
+    # Open the HDF5 file in read/write mode
+    #location = 'entry/blankData/'
+    with h5py.File(BlankPath+'/'+BlankFile, 'r+') as hdf_file:
+            # Check if the group 'location' exists, if yes, bail out as this is all needed. 
+            # if deleteExisting:
+            #     # Delete the group
+            #     del hdf_file[location]
+            #     print("Deleted existing group 'entry/displayData'.")
+
+            # if location in hdf_file:
+            #     # exists, so lets reuse the data from the file
+            #     Blank = dict()
+            #     Blank = load_dict_from_hdf5(hdf_file, location)
+            #     print("Used existing data")
+            #     return Blank
+            # else:
+                Blank = dict()
+                Blank["RawData"]=importFlyscan(BlankPath, BlankFile)         #import data
+                Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates PD_Intesnity with corrected gains and background subtraction
+                Blank["BlankData"].update(calculatePDError(Blank, isBlank=True))          # Calculate UPD error, mostly the same as in Igor                
+                Blank["BlankData"].update(beamCenterCorrection(Blank,useGauss=0, isBlank=True)) #Beam center correction
+                Blank["BlankData"].update(smooth_r_data(Blank["BlankData"]["PD_intensity"],     #smooth data data
+                                                        Blank["BlankData"]["Q_array"], 
+                                                        Blank["BlankData"]["PD_range"], 
+                                                        Blank["BlankData"]["PD_error"], 
+                                                        Blank["RawData"]["TimePerPoint"] )) 
+                # we need to return just the BlandData part 
+                BlankData=dict()
+                BlankData=Blank["BlankData"]
+                # Create the group and dataset for the new data inside the hdf5 file for future use. 
+                #save_dict_to_hdf5(Blank, location, hdf_file)
+                #print("Appended new data to 'entry/blankData'.")
+                return BlankData
 
 
 
-def calculatePDError(Sample):
+def calculatePDError(Sample, isBlank=False):
     #OK, another incarnation of the error calculations...
     UPD_array = Sample["RawData"]["UPD_array"]
     # USAXS_PD = Sample["ReducedData"]["PD_intensity"]
     #MeasTime = Sample["RawData"]["TimePerPoint"]
-    UPD_gains=Sample["ReducedData"]["UPD_gains"]
+    if isBlank:
+        UPD_gains=Sample["BlankData"]["UPD_gains"]
+    else:
+        UPD_gains=Sample["ReducedData"]["UPD_gains"]
     Frequency=1e6   #this is frequency of clock fed into mca1
     Monitor = Sample["RawData"]["Monitor"]
     I0AmpGain=Sample["RawData"]["metadata"]["I0AmpGain"]
@@ -90,7 +187,7 @@ def test_matildaLocal():
     # else:
     #     print("File found")
     #open the file
-    Sample = reduceFlyscan("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData","USAXS.h5",deleteExisting=True)    
+    Sample = reduceFlyscan("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs","PPOH_25C_2_0068.h5",deleteExisting=True)    
     Q_array = Sample["ReducedData"]["Q_array"]
     UPD = Sample["ReducedData"]["PD_intensity"]
     Error = Sample["ReducedData"]["PD_error"]
