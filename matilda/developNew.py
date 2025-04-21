@@ -9,7 +9,7 @@ import pprint as pp
 from supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
 from convertUSAXS import rebinData
-#from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
 
 
@@ -144,20 +144,20 @@ def getBlankFlyscan():
     BlankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
     BlankFile="HeaterBlank_0060.h5"
     # Open the HDF5 file in read/write mode
-    #location = 'entry/blankData/'
+    location = 'entry/blankData/'
     with h5py.File(BlankPath+'/'+BlankFile, 'r+') as hdf_file:
             # Check if the group 'location' exists, if yes, bail out as this is all needed. 
-            # if deleteExisting:
-            #     # Delete the group
-            #     del hdf_file[location]
-            #     print("Deleted existing group 'entry/displayData'.")
+            if deleteExisting:
+                # Delete the group
+                del hdf_file[location]
+                print("Deleted existing group 'entry/blankData'.")
 
-            # if location in hdf_file:
-            #     # exists, so lets reuse the data from the file
-            #     Blank = dict()
-            #     Blank = load_dict_from_hdf5(hdf_file, location)
-            #     print("Used existing data")
-            #     return Blank
+            if location in hdf_file:
+                # exists, so lets reuse the data from the file
+                Blank = dict()
+                Blank = load_dict_from_hdf5(hdf_file, location)
+                print("Used existing data")
+                return Blank
             # else:
                 Blank = dict()
                 Blank["RawData"]=importFlyscan(BlankPath, BlankFile)         #import data
