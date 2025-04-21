@@ -43,7 +43,8 @@ def reduceFlyscan(path, filename, deleteExisting=False):
                                                         Sample["ReducedData"]["Q_array"], 
                                                         Sample["ReducedData"]["PD_range"], 
                                                         Sample["ReducedData"]["PD_error"], 
-                                                        Sample["RawData"]["TimePerPoint"] ))                 
+                                                        Sample["RawData"]["TimePerPoint"],
+                                                        replaceNans=True))                 
                 Sample["BlankData"]=getBlankFlyscan()
                 Sample["ReducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
                 Sample["CalibratedData"]=(calibrateAndSubtractFlyscan(Sample))
@@ -176,7 +177,8 @@ def getBlankFlyscan():
                                                         Blank["BlankData"]["Q_array"], 
                                                         Blank["BlankData"]["PD_range"], 
                                                         Blank["BlankData"]["PD_error"], 
-                                                        Blank["RawData"]["TimePerPoint"] )) 
+                                                        Blank["RawData"]["TimePerPoint"],
+                                                        replaceNans=True )) 
                 # we need to return just the BlandData part 
                 BlankData=dict()
                 BlankData=Blank["BlankData"]
@@ -191,17 +193,21 @@ def calculatePDError(Sample, isBlank=False):
     #OK, another incarnation of the error calculations...
     UPD_array = Sample["RawData"]["UPD_array"]
     # USAXS_PD = Sample["ReducedData"]["PD_intensity"]
-    #MeasTime = Sample["RawData"]["TimePerPoint"]
+    MeasTimeCts = Sample["RawData"]["TimePerPoint"]
+    Frequency=1e6   #this is frequency of clock fed into mca1
+    MeasTime = MeasTimeCts/Frequency    #measurement time in seconds per point
     if isBlank:
         UPD_gains=Sample["BlankData"]["UPD_gains"]
+        UPD_bkgErr = Sample["BlankData"]["UPD_bkgErr"]    
     else:
         UPD_gains=Sample["ReducedData"]["UPD_gains"]
-    Frequency=1e6   #this is frequency of clock fed into mca1
+        UPD_bkgErr = Sample["ReducedData"]["UPD_bkgErr"]    
+
     Monitor = Sample["RawData"]["Monitor"]
     I0AmpGain=Sample["RawData"]["metadata"]["I0AmpGain"]
     VToFFactor = Sample["RawData"]["VToFFactor"]/10      #this is mca1 frequency, HDF5 writer 1.3 and above needs /10 
     SigmaUSAXSPD=np.sqrt(UPD_array*(1+0.0001*UPD_array))		#this is our USAXS_PD error estimate, Poisson error + 1% of value
-	#SigmaPDwDC=np.sqrt(SigmaUSAXSPD^2+(MeasTime*ErrorParameters[UPD_gains-1])^2) #This should be measured error for background
+    SigmaPDwDC=np.sqrt(SigmaUSAXSPD**2+(MeasTime*UPD_bkgErr)**2) #This should include now measured error for background
     SigmaPDwDC=SigmaUSAXSPD/(Frequency*UPD_gains)
     A=(UPD_array)/(VToFFactor[0]*UPD_gains)		#without dark current subtraction
     SigmaMonitor= np.sqrt(Monitor)		            #these calculations were done for 10^6 

@@ -15,7 +15,7 @@
 import h5py
 import numpy as np
 from scipy.optimize import curve_fit
-
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import pprint as pp
 from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
@@ -28,7 +28,7 @@ from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 ## Flyscan main code here
 
-## importFlyscan loads data from flyscan NX file. It shoudl be same for QR pass as well as for calibrated data processing. 
+## importFlyscan loads data from flyscan NX file. It should be same for QR pass as well as for calibrated data processing. 
 def importFlyscan(path, filename):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
     with h5py.File(path+"/"+filename, 'r') as file:
@@ -60,6 +60,7 @@ def importFlyscan(path, filename):
         keys_to_keep = ['AR_center', 'ARenc_0', 'DCM_energy', 'DCM_theta', 'I0AmpGain','detector_distance',
                         'trans_pin_counts','trans_pin_gain','trans_pin_time','trans_I0_counts','trans_I0_gain',
                         'UPDsize', 'trans_I0_counts', 'trans_I0_gain', 'upd_bkg0', 'upd_bkg1','upd_bkg2','upd_bkg3',
+                        'upd_bkgErr0','upd_bkgErr1','upd_bkgErr2','upd_bkgErr3','upd_bkgErr4','upd_bkg_err0',
                         'upd_bkg4','DDPCA300_gain0','DDPCA300_gain1','DDPCA300_gain2','DDPCA300_gain3','DDPCA300_gain4',
                         'upd_amp_change_mask_time0','upd_amp_change_mask_time1','upd_amp_change_mask_time2','upd_amp_change_mask_time3','upd_amp_change_mask_time4',
                     ]
@@ -138,6 +139,7 @@ def calculatePD_Fly(data_dict):
     GainsIndx = np.full(AmpGain_array.shape, np.nan)
     Gains = np.full(AmpGain_array.shape, np.nan)
     updBkg = np.full(AmpGain_array.shape, np.nan)
+    updBkgErr = np.full(AmpGain_array.shape, np.nan)
 
         # Use a boolean mask to find where two arrays agree
     mask = AmpGain_array == AmpGainReq_array
@@ -159,6 +161,12 @@ def calculatePD_Fly(data_dict):
         Gains[i] = metadata_dict[gainName]
         updBkgName = 'upd_bkg'+str(int(GainsIndx[i]))
         updBkg[i] =  metadata_dict[updBkgName]
+        try:
+            updBkgErrName = 'upd_bkgErr'+str(int(GainsIndx[i]))
+            updBkgErr[i] =  metadata_dict[updBkgErrName]
+        except:
+            updBkgErrName = 'upd_bkg_err'+str(int(GainsIndx[i]))     #typo in Flyscan schema below 1.3 (before June 2025) 
+            updBkgErr[i] =  metadata_dict[updBkgErrName]
 
         #mask amplifier dead times. This is done by comparing table fo deadtimes from metadata with times after range change. 
     Frequency=VToFFactor[0]/10   #this is frequency of clock fed ito mca1/10 for HDF5 writer 1.3 and higher
@@ -184,7 +192,8 @@ def calculatePD_Fly(data_dict):
     result = {"PD_intensity":PD_Intensity,
               "PD_error":PD_error,
               "PD_range":GainsIndx,
-              "UPD_gains":Gains}
+              "UPD_gains":Gains,
+              "UPD_bkgErr":updBkgErr}
     return result
 
 def rebinData(data_dict,num_points=200, isSMRData=False):
@@ -430,14 +439,27 @@ def beamCenterCorrection(data_dict, useGauss=1, isBlank=False):
     return results
 
 
-def smooth_r_data(intensity, qvector, pd_range, r_error, meas_time):
+def smooth_r_data(intensity, qvector, pd_range, r_error, meas_time, replaceNans=False):
     # Smoothing times for different ranges
     rwave_smooth_times = [0, 0, 0.01, 0.03, 0.06]   # these are [in sec] values for USAXS on 4/20/2025
 
     # Logarithm of intensity
     temp_int_log = np.log(intensity)
+    # for some cases replace nans with interpolated values
+    if replaceNans:
+        # Create a mask for NaNs
+        nan_mask = np.isnan(temp_int_log)
+        # Indices of non-NaN values
+        x_non_nan = qvector[~nan_mask]
+        y_non_nan = temp_int_log[~nan_mask]
+        # Create an interpolation function
+        interp_func = interp1d(x_non_nan, y_non_nan, kind='linear', fill_value='extrapolate')
+        # Replace NaNs with interpolated values
+        temp_int_log[nan_mask] = interp_func(qvector[nan_mask])
+
+
     smooth_intensity = np.copy(temp_int_log)
-    meas_time_sec = meas_time/1e6       #this is still frequency, need time in seconds. 
+    meas_time_sec = meas_time/1e6       # meas_time is still frequency, need time in seconds. 
 
     def linear_fit(x, a, b):
         return a + b * x
