@@ -57,7 +57,8 @@ def importFlyscan(path, filename):
         dataset = file['/entry/flyScan/mca_clock_frequency'] 
         vTof = np.ravel(np.array(dataset))    
         #metadata
-        keys_to_keep = ['AR_center', 'ARenc_0', 'DCM_energy', 'DCM_theta', 'I0AmpGain',
+        keys_to_keep = ['AR_center', 'ARenc_0', 'DCM_energy', 'DCM_theta', 'I0AmpGain','detector_distance',
+                        'trans_pin_counts','trans_pin_gain','trans_pin_time','trans_I0_counts','trans_I0_gain',
                         'UPDsize', 'trans_I0_counts', 'trans_I0_gain', 'upd_bkg0', 'upd_bkg1','upd_bkg2','upd_bkg3',
                         'upd_bkg4','DDPCA300_gain0','DDPCA300_gain1','DDPCA300_gain2','DDPCA300_gain3','DDPCA300_gain4',
                         'upd_amp_change_mask_time0','upd_amp_change_mask_time1','upd_amp_change_mask_time2','upd_amp_change_mask_time3','upd_amp_change_mask_time4',
@@ -70,7 +71,9 @@ def importFlyscan(path, filename):
         instrument_group = file['/entry/instrument']
         instrument_dict = read_group_to_dict(instrument_group)
         instrument_dict = filter_nested_dict(instrument_dict, keys_to_keep)
-
+        # sample
+        sample_group = file['/entry/sample']
+        sample_group = read_group_to_dict(sample_group)
 
     # Call the function with your arrays
     check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
@@ -86,6 +89,7 @@ def importFlyscan(path, filename):
                 "AmpReqGain": AmpReqGain,
                 "metadata": metadata_dict,
                 "instrument": instrument_dict,
+                "sample": sample_group,
                 }
     
     return data_dict

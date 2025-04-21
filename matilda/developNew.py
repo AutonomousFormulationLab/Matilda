@@ -48,8 +48,6 @@ def reduceFlyscan(path, filename, deleteExisting=False):
                 Sample["ReducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
                 Sample["CalibratedData"]=(calibrateAndSubtractFlyscan(Sample))
                 #pp.pprint(Sample)
-                # TODO: Blank/background subtraction
-                # TODO:     figure out proper blank and if needed, reduce to BL_QRS
                 # TODO: calibration
                 # TODO: fix rebinning for 3 input waves returning 4 waves with dQ
                 Sample["CalibratedData"].update(rebinData(Sample, num_points=500, isSMRData=True))         #Rebin data
@@ -65,12 +63,16 @@ def normalizeBlank(Sample):
     PeakIntensitySample = Sample["ReducedData"]["Maximum"]
     PeakIntensityBlank = Sample["BlankData"]["Maximum"]
     PeakToPeakTransmission = PeakIntensitySample/PeakIntensityBlank
+
+
     PD_intensity = Sample["ReducedData"]["PD_intensity"]
     PD_intensity = PD_intensity / PeakToPeakTransmission
     PD_error = Sample["ReducedData"]["PD_error"]
     PD_error = PD_error / PeakToPeakTransmission
     result = {"PD_intensity":PD_intensity,
-            "PD_error":PD_error}
+            "PD_error":PD_error,
+            "PeakToPeakTransmission":PeakToPeakTransmission
+            }
     return result
     
 
@@ -91,6 +93,17 @@ def calibrateAndSubtractFlyscan(Sample):
     FWHMSample = Sample["ReducedData"]["FWHM"]
     FWHMBlank = Sample["BlankData"]["FWHM"]
     wavelength =  Sample["ReducedData"]["wavelength"]
+    PeakToPeakTransmission =  Sample["ReducedData"]["PeakToPeakTransmission"]
+    SaTransCounts = Sample['RawData']['metadata']['trans_pin_counts']
+    SaTransGain = Sample['RawData']['metadata']['trans_pin_gain']
+    SaI0Counts = Sample['RawData']['metadata']['trans_I0_counts']
+    SaI0Gain = Sample['RawData']['metadata']['trans_I0_gain'] 
+    BlTransCounts = Sample['BlankData']['BlTransCounts']
+    BlTransGain = Sample['BlankData']['BlTransGain']
+    BlI0Counts = Sample['BlankData']['BlI0Counts']
+    BlI0Gain = Sample['BlankData']['BlI0Gain']
+    MeasuredTransmission = ((SaTransCounts/SaTransGain)/(SaI0Counts/SaI0Gain))/((BlTransCounts /BlTransGain )/(BlI0Counts/BlI0Gain))
+    MSAXSCorrection = MeasuredTransmission / PeakToPeakTransmission
     QminSample = 4*np.pi*np.sin(np.radians(FWHMSample)/2)/wavelength
     QminBlank = 4*np.pi*np.sin(np.radians(FWHMBlank)/2)/wavelength
     indexSample = np.searchsorted(Q_array, QminSample)
@@ -100,10 +113,27 @@ def calibrateAndSubtractFlyscan(Sample):
     SMR_Qvec = SMR_Qvec[largest_value-1 : ]    
     SMR_Int = SMR_Int[largest_value-1 : ]    
     SMR_Error = SMR_Error[largest_value-1 : ]
+    # now calibration... 
+    SDD = Sample["RawData"]["metadata"]['detector_distance']
+    UPDSize =  Sample["RawData"]["metadata"]['UPDsize']
+    thickness = Sample["RawData"]["sample"]['thickness']
+    BLPeakMax = Sample["BlankData"]["Maximum"]
+    BlankName = Sample["BlankData"]["BlankName"]
+    OmegaFactor= (UPDSize/SDD)*np.radians(FWHMBlank)
+    Kfactor=BLPeakMax*OmegaFactor*thickness * 0.1 
+    #apply calibration
+    SMR_Int =  SMR_Int / (Kfactor*MSAXSCorrection) 
+    SMR_Error = SMR_Error/ (Kfactor*MSAXSCorrection) 
 
     return {"SMR_Qvec":SMR_Qvec,
             "SMR_Int":SMR_Int,
-            "SMR_Error":SMR_Error}
+            "SMR_Error":SMR_Error,
+            "Kfactor":Kfactor,
+            "OmegaFactor":OmegaFactor,
+            "BlankName":BlankName,
+            "thickness":thickness,
+            "units":"[cm2/cm3]"
+            }
 
 def getBlankFlyscan():
       # need to get proper info from tiled on last collected Blank
@@ -130,7 +160,16 @@ def getBlankFlyscan():
             # else:
                 Blank = dict()
                 Blank["RawData"]=importFlyscan(BlankPath, BlankFile)         #import data
+                BlTransCounts = Blank['RawData']['metadata']['trans_pin_counts']
+                BlTransGain = Blank['RawData']['metadata']['trans_pin_gain']
+                BlI0Counts = Blank['RawData']['metadata']['trans_I0_counts']
+                BlI0Gain = Blank['RawData']['metadata']['trans_I0_gain']
                 Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates PD_Intesnity with corrected gains and background subtraction
+                Blank["BlankData"].update({"BlankName":BlankFile})          # add the name of the blank file
+                Blank["BlankData"].update({"BlTransCounts":BlTransCounts})  # add the BlTransCounts
+                Blank["BlankData"].update({"BlTransGain":BlTransGain})      # add the BlTransGain
+                Blank["BlankData"].update({"BlI0Counts":BlI0Counts})        # add the BlI0Counts
+                Blank["BlankData"].update({"BlI0Gain":BlI0Gain})            # add the BlTransGain
                 Blank["BlankData"].update(calculatePDError(Blank, isBlank=True))          # Calculate UPD error, mostly the same as in Igor                
                 Blank["BlankData"].update(beamCenterCorrection(Blank,useGauss=0, isBlank=True)) #Beam center correction
                 Blank["BlankData"].update(smooth_r_data(Blank["BlankData"]["PD_intensity"],     #smooth data data
