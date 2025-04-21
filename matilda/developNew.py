@@ -215,7 +215,7 @@ def calculatePDError(Sample, isBlank=False):
     SigmaRwave=np.sqrt((A**2 * SigmaMonitor**4)+(SigmaPDwDC**2 * ScaledMonitor**4)+((A**2 + SigmaPDwDC**2) * ScaledMonitor**2 * SigmaMonitor**2))
     SigmaRwave=SigmaRwave/(ScaledMonitor*(ScaledMonitor**2-SigmaMonitor**2))
     SigmaRwave=SigmaRwave * I0AmpGain			#fix for use of I0 gain here, the numbers were too low due to scaling of PD by I0AmpGain
-    PD_error=SigmaRwave/5		#2025-04 these values are simply too large on new APS-U USAXS instrument
+    PD_error=SigmaRwave/4		#2025-04 these values are simply too large on new APS-U USAXS instrument
     result = {"PD_error":PD_error}
     return result
 
