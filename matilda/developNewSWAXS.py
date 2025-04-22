@@ -38,6 +38,12 @@ wavelength = entry:instrument:monochromator:wavelength
 Xray energy= ... energy
 Geometry is setup correctly already:
 '''
+# TODO: split into multiple steps as needed
+# TODO: add blank handling
+# TODO: add calibration step 
+# TODO: test me... 
+
+
 
 ## main code here
 def ImportAndReduceAD(path, filename, deleteExisting=False):
