@@ -147,10 +147,10 @@ def getBlankFlyscan():
     location = 'entry/blankData/'
     with h5py.File(BlankPath+'/'+BlankFile, 'r+') as hdf_file:
             # Check if the group 'location' exists, if yes, bail out as this is all needed. 
-            if deleteExisting:
-                # Delete the group
-                del hdf_file[location]
-                print("Deleted existing group 'entry/blankData'.")
+            # if deleteExisting:
+            #     # Delete the group
+            #     del hdf_file[location]
+            #     print("Deleted existing group 'entry/blankData'.")
 
             if location in hdf_file:
                 # exists, so lets reuse the data from the file
@@ -158,14 +158,14 @@ def getBlankFlyscan():
                 Blank = load_dict_from_hdf5(hdf_file, location)
                 print("Used existing data")
                 return Blank
-            # else:
+            else:
                 Blank = dict()
                 Blank["RawData"]=importFlyscan(BlankPath, BlankFile)         #import data
                 BlTransCounts = Blank['RawData']['metadata']['trans_pin_counts']
                 BlTransGain = Blank['RawData']['metadata']['trans_pin_gain']
                 BlI0Counts = Blank['RawData']['metadata']['trans_I0_counts']
                 BlI0Gain = Blank['RawData']['metadata']['trans_I0_gain']
-                Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates PD_Intesnity with corrected gains and background subtraction
+                Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates PD_Intensity with corrected gains and background subtraction
                 Blank["BlankData"].update({"BlankName":BlankFile})          # add the name of the blank file
                 Blank["BlankData"].update({"BlTransCounts":BlTransCounts})  # add the BlTransCounts
                 Blank["BlankData"].update({"BlTransGain":BlTransGain})      # add the BlTransGain
