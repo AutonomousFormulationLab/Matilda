@@ -50,18 +50,18 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
         #     del hdf_file[location]
         #     print("Deleted existing group 'entry/displayData'.")
 
-        # if location in hdf_file:
-        #     # exists, so lets reuse the data from the file
-        #     Sample = dict()
-        #     Sample = load_dict_from_hdf5(hdf_file, location)
-        #     print("Used existing data")
-        #     q = Sample["ReducedData"]["Q_array"]
-        #     intensity = Sample["ReducedData"]["Intensity"]
-        #     result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}  
-        #     return result
+        if location in hdf_file:
+            # exists, so lets reuse the data from the file
+            Sample = dict()
+            Sample = load_dict_from_hdf5(hdf_file, location)
+            print("Used existing data")
+            q = Sample["ReducedData"]["Q_array"]
+            intensity = Sample["ReducedData"]["Intensity"]
+            result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}  
+            return result
         
         
-        # else:
+        else:
             Sample = dict()
             #read various data sets
             logging.info(f"Read file :{filename}")
