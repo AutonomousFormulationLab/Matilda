@@ -20,6 +20,24 @@ import logging
 from convertNikaTopyFAI import convert_Nika_to_Fit2D
 from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
+'''
+Here is how we are suppose to process the data:
+
+Int = Corrfactor / SolidAngeCorr / I0 / SampleThickness * (Sa2D/Transm * -  I0/I0Blank * Blank2D)
+
+Here is lookup from Nika:
+SAXS and WAXS are same : 
+SampleThickness = entry:sample:thickness
+SampleI0 = entry:control:integral
+SampleMeasurementTime = entry:control:preset
+Corrfactor = entry:Metadata:I_scaling
+
+these are setup already correctly:
+SDD = entry:instrument:detector:distance
+wavelength = entry:instrument:monochromator:wavelength
+Xray energy= ... energy
+Geometry is setup correctly already:
+'''
 
 ## main code here
 def ImportAndReduceAD(path, filename, deleteExisting=False):
@@ -53,8 +71,9 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
             instrument_group = hdf_file['/entry/instrument']
             instrument_dict = read_group_to_dict(instrument_group)
             #metadata
-            keys_to_keep = ['I000_cts', 'I00_cts', 'I00_gain', 'I0_cts', 'I0_gated',
-                            'I0_gain', 'I_scaling', 'Pin_TrI0', 'Pin_TrI0gain', 'Pin_TrI0gain','Pin_TrPD','Pin_TrPDgain',
+            keys_to_keep = ['I000_cts', 'I00_cts', 'I00_gain', 'I0_cts', 'I0_cts_gated',
+                            'TR_cts_gated','TR_cts','TR_gain','I0_Sample',
+                            'I0_gain', 'I_scaling', 'Pin_TrI0', 'Pin_TrI0gain', 'Pin_TrPD','Pin_TrPDgain',
                             'PresetTime', 'monoE', 'pin_ccd_center_x_pixel','pin_ccd_center_y_pixel',
                             'pin_ccd_tilt_x', 'pin_ccd_tilt_y', 'wavelength', 'waxs_ccd_center_x', 'waxs_ccd_center_y',
                             'waxs_ccd_tilt_x', 'waxs_ccd_tilt_y', 'waxs_ccd_center_x_pixel', 'waxs_ccd_center_y_pixel',
@@ -63,6 +82,19 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
             metadata_group = hdf_file['/entry/Metadata']
             metadata_dict = read_group_to_dict(metadata_group)
             metadata_dict = filter_nested_dict(metadata_dict, keys_to_keep)
+            sample_group = hdf_file['entry/sample']
+            sample_dict = read_group_to_dict(sample_group)
+            control_group = hdf_file['/entry/control']
+            control_dict = read_group_to_dict(control_group)
+            Sample["RawData"] = dict()
+            Sample["RawData"]["Filename"] = filename
+            Sample["RawData"]["SampleName"] = sample_dict["name"]
+            Sample["RawData"]["instrument"] = instrument_dict
+            Sample["RawData"]["metadata"] = metadata_dict
+            Sample["RawData"]["sample"] = sample_dict
+            Sample["RawData"]["control"] = control_dict
+            #logging.info(f"Finished reading data")
+            #logging.info(f"Read data")
             # wavelength, keep in A for Fit2D
             wavelength = instrument_dict["monochromator"]["wavelength"]
             # pixel_size, keep in mm, converted in convert_Nika_to_Fit2D to micron for Fit2D and then to m for pyFAI... 
@@ -131,45 +163,45 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
         Sample["ReducedData"] = dict()
         Sample["ReducedData"]["Q_array"] = q
         Sample["ReducedData"]["Intensity"] = intensity
-        save_dict_to_hdf5(Sample, location, hdf_file)
-        print("Appended new data to 'entry/displayData'.")
-        result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
-        return result
+        #save_dict_to_hdf5(Sample, location, hdf_file)
+        #print("Appended new data to 'entry/displayData'.")
+        #result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
+        #return result
+        return Sample
+
+# def reduceADToQR(path, filename):
+#         tempFilename= os.path.splitext(filename)[0]
+#         tempSample = {"RawData":{"Filename": tempFilename}}
+#         # label = data_dict["RawData"]["Filename"]
+#         # Q_array = data_dict["ReducedData"]["Q_array"]
+#         # Intensity = data_dict["ReducedData"]["PD_intensity"]
+#         tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
+#         #pp.pprint(tempSample)
+#         #pp.pprint(tempSample["RawData"]["Filename"])
+#         return tempSample
 
 
-def reduceADToQR(path, filename):
-        tempFilename= os.path.splitext(filename)[0]
-        tempSample = {"RawData":{"Filename": tempFilename}}
-        # label = data_dict["RawData"]["Filename"]
-        # Q_array = data_dict["ReducedData"]["Q_array"]
-        # Intensity = data_dict["ReducedData"]["PD_intensity"]
-        tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
-        #pp.pprint(tempSample)
-        #pp.pprint(tempSample["RawData"]["Filename"])
-        return tempSample
-
-
-def PlotResults(data_dict):
-    # Find Peak center and create Q vector.
-    Q_array = data_dict["ReducedData"]["Q_array"]
-    Intensity = data_dict["ReducedData"]["Intensity"]
-    # Plot ydata against xdata
-    plt.figure(figsize=(6, 12))
-    plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
-    plt.title('Plot of Intensity vs. Q')
-    plt.xlabel('log(Q) [1/A]')
-    plt.ylabel('Intensity')
-    plt.xscale('linear')
-    plt.yscale('linear')
-    plt.grid(True)
-    plt.show()
+# def PlotResults(data_dict):
+#     # Find Peak center and create Q vector.
+#     Q_array = data_dict["ReducedData"]["Q_array"]
+#     Intensity = data_dict["ReducedData"]["Intensity"]
+#     # Plot ydata against xdata
+#     plt.figure(figsize=(6, 12))
+#     plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
+#     plt.title('Plot of Intensity vs. Q')
+#     plt.xlabel('log(Q) [1/A]')
+#     plt.ylabel('Intensity')
+#     plt.xscale('linear')
+#     plt.yscale('linear')
+#     plt.grid(True)
+#     plt.show()
 
 if __name__ == "__main__":
     Sample = dict()
-    Sample=reduceADToQR("./TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
+    #Sample=reduceADToQR("./TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
     #Sample["ReducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
     #pp.pprint(Sample)
-    PlotResults(Sample)
+    #PlotResults(Sample)
 
 
 
