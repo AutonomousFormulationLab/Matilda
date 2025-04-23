@@ -39,8 +39,10 @@ Xray energy= ... energy
 Geometry is setup correctly already:
 '''
 # TODO: split into multiple steps as needed
-# TODO: add blank handling
-# TODO: add calibration step 
+# Import images for sample and blank as separate calls and get sample and blank objects
+#   calibration step, calculate corrections, apply corrections
+#   subtract 2D images to get calibrated image as Nika
+#   convert to 1D data
 # TODO: test me... 
 
 
@@ -48,7 +50,7 @@ Geometry is setup correctly already:
 ## main code here
 def ImportAndReduceAD(path, filename, deleteExisting=False):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
-    location = 'entry/displayData/'
+    location = 'entry/NXcanSAS/data'    #we need to make sure we have separate NXcanSAS data here. Is it still entry? 
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
         # Check if the group 'displayData' exists
         # if deleteExisting:
