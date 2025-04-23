@@ -195,9 +195,9 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     current_hostname = socket.gethostname()
     if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
         if isFlyscan:
-            plt.savefig('/share1/local_livedata/usaxs.jpg', format='jpg', dpi=300)
+            plt.savefig('/home/joule/WEBUSAXS/www_live/usaxs.jpg', format='jpg', dpi=300)
         else:
-            plt.savefig('/share1/local_livedata/stepusaxs.jpg', format='jpg', dpi=300) # this step scan
+            plt.savefig('/home/joule/WEBUSAXS/www_live/stepusaxs.jpg', format='jpg', dpi=300) # this step scan
         plt.close()
     else:
         if isFlyscan:
@@ -237,7 +237,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         plt.legend()
         current_hostname = socket.gethostname()
         if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
-            plt.savefig('/share1/local_livedata/saxs.jpg', format='jpg', dpi=300)
+            plt.savefig('/home/joule/WEBUSAXS/www_live/saxs.jpg', format='jpg', dpi=300)
             plt.close()
         else:
             plt.savefig('saxs.jpg', format='jpg', dpi=300)
@@ -254,7 +254,7 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
         # Save the plot as a JPEG image
         current_hostname = socket.gethostname()
         if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
-            plt.savefig('/share1/local_livedata/waxs.jpg', format='jpg', dpi=300)
+            plt.savefig('/home/joule/WEBUSAXS/www_live/waxs.jpg', format='jpg', dpi=300)
             plt.close()
         else:
             plt.savefig('waxs.jpg', format='jpg', dpi=300)
