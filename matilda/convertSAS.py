@@ -36,8 +36,8 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
             Sample = dict()
             Sample = load_dict_from_hdf5(hdf_file, location)
             print("Used existing data")
-            q = Sample["ReducedData"]["Q_array"]
-            intensity = Sample["ReducedData"]["Intensity"]
+            q = Sample["reducedData"]["Q_array"]
+            intensity = Sample["reducedData"]["Intensity"]
             result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}  
             return result
         
@@ -127,9 +127,9 @@ def ImportAndReduceAD(path, filename, deleteExisting=False):
         # Perform azimuthal integration
         q, intensity = ai.integrate1d(my2DData, npt, mask=mask, correctSolidAngle=True, unit="q_A^-1")
         #logging.info(f"Finished 2d to 1D conversion")
-        Sample["ReducedData"] = dict()
-        Sample["ReducedData"]["Q_array"] = q
-        Sample["ReducedData"]["Intensity"] = intensity
+        Sample["reducedData"] = dict()
+        Sample["reducedData"]["Q_array"] = q
+        Sample["reducedData"]["Intensity"] = intensity
         save_dict_to_hdf5(Sample, location, hdf_file)
         print("Appended new data to 'entry/displayData'.")
         result = {"Intensity":np.ravel(intensity), "Q_array":np.ravel(q)}
@@ -140,9 +140,9 @@ def reduceADToQR(path, filename):
         tempFilename= os.path.splitext(filename)[0]
         tempSample = {"RawData":{"Filename": tempFilename}}
         # label = data_dict["RawData"]["Filename"]
-        # Q_array = data_dict["ReducedData"]["Q_array"]
-        # Intensity = data_dict["ReducedData"]["PD_intensity"]
-        tempSample["ReducedData"]=ImportAndReduceAD(path, filename)
+        # Q_array = data_dict["reducedData"]["Q_array"]
+        # Intensity = data_dict["reducedData"]["PD_intensity"]
+        tempSample["reducedData"]=ImportAndReduceAD(path, filename)
         #pp.pprint(tempSample)
         #pp.pprint(tempSample["RawData"]["Filename"])
         return tempSample
@@ -150,8 +150,8 @@ def reduceADToQR(path, filename):
 
 def PlotResults(data_dict):
     # Find Peak center and create Q vector.
-    Q_array = data_dict["ReducedData"]["Q_array"]
-    Intensity = data_dict["ReducedData"]["Intensity"]
+    Q_array = data_dict["reducedData"]["Q_array"]
+    Intensity = data_dict["reducedData"]["Intensity"]
     # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
     plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
@@ -166,7 +166,7 @@ def PlotResults(data_dict):
 if __name__ == "__main__":
     Sample = dict()
     Sample=reduceADToQR("./TestData/TestTiltData","LaB6_tilt7v_0049.hdf")
-    #Sample["ReducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
+    #Sample["reducedData"]=test("/home/parallels/Github/Matilda/TestData","LaB6_45deg.tif")
     #pp.pprint(Sample)
     PlotResults(Sample)
 

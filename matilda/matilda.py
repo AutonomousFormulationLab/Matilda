@@ -178,8 +178,8 @@ def plotUSAXSResults(ListOfresults, isFlyscan=True):
     for i, color in zip(range(len(ListOfresults)),colors):
         data_dict = ListOfresults[i]
         label = data_dict["RawData"]["Filename"]
-        Q_array = data_dict["ReducedData"]["Q_array"]
-        UPD = data_dict["ReducedData"]["PD_intensity"]
+        Q_array = data_dict["reducedData"]["Q_array"]
+        UPD = data_dict["reducedData"]["PD_intensity"]
         plt.plot(Q_array, UPD, color=color, linestyle='-', label=label)  # You can customize the marker and linestyle
     
     plt.title('Plot of UPD vs. Q')
@@ -222,8 +222,8 @@ def plotSWAXSResults(ListOfresults, isSAXS = True):
     for i, color in zip(range(len(ListOfresults)),colors):
         data_dict = ListOfresults[i]
         label = data_dict["RawData"]["Filename"]
-        Q_array = data_dict["ReducedData"]["Q_array"]
-        UPD = data_dict["ReducedData"]["Intensity"]
+        Q_array = data_dict["reducedData"]["Q_array"]
+        UPD = data_dict["reducedData"]["Intensity"]
         plt.plot(Q_array, UPD, color=color, linestyle='-', label=label)  # You can customize the marker and linestyle
     plt.ylabel('Intensity')   
     if isSAXS:

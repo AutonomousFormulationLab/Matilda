@@ -109,11 +109,11 @@ def filter_nested_dict(d, keys_to_keep):
 def results_to_dataset(results):
     results = copy.deepcopy(results)
     ds = xr.Dataset()
-    ds['USAXS_int'] = ('q',results['ReducedData']['UPD'])
-    ds['q'] = results['ReducedData']['Q_array']
-    del results['ReducedData']['UPD']
-    del results['ReducedData']['Q_array']
-    ds.update(results['ReducedData'])
+    ds['USAXS_int'] = ('q',results['reducedData']['UPD'])
+    ds['q'] = results['reducedData']['Q_array']
+    del results['reducedData']['UPD']
+    del results['reducedData']['Q_array']
+    ds.update(results['reducedData'])
     for our_name,raw_name in [('AR_angle','ARangles'),
                               ('TimePerPoint','TimePerPoint'),
                               ('Monitor','Monitor'),

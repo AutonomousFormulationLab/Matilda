@@ -208,9 +208,9 @@ def rebinData(data_dict,num_points=200, isSMRData=False):
                 "SMR_Error":SMR_ErrorNew  
                 }    
     else:
-        Q_array = data_dict["ReducedData"]["Q_array"]
-        R_array = data_dict["ReducedData"]["PD_intensity"]
-        S_array = data_dict["ReducedData"]["PD_error"]
+        Q_array = data_dict["reducedData"]["Q_array"]
+        R_array = data_dict["reducedData"]["PD_intensity"]
+        S_array = data_dict["reducedData"]["PD_error"]
         Q_arrayNew, R_arrayNew, S_arrayNew = rebin_QRSdata(Q_array, R_array,S_array, num_points)
         results = {"Q_array":Q_arrayNew,
                 "PD_intensity":R_arrayNew,
@@ -318,13 +318,13 @@ def CorrectUPDGainsStep(data_dict):
 def beamCenterCorrection(data_dict, useGauss=1, isBlank=False):
     # Find Peak center and create Q vector.
         #RawData=data_dict["rawData"]
-        #ReducedData = data_dict["ReducedData"]
+        #reducedData = data_dict["reducedData"]
     ARangles = data_dict["RawData"]["ARangles"]
     instrument_dict = data_dict["RawData"]["instrument"]
     if isBlank:
         UPD_array = data_dict["BlankData"]["PD_intensity"]
     else:
-        UPD_array = data_dict["ReducedData"]["PD_intensity"]
+        UPD_array = data_dict["reducedData"]["PD_intensity"]
 
         #plt.figure(figsize=(6, 12))
         #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
@@ -514,8 +514,8 @@ def smooth_r_data(intensity, qvector, pd_range, r_error, meas_time, replaceNans=
 
 def PlotResults(data_dict):
         # Plot UPD vs Q.
-    Q_array = data_dict["ReducedData"]["Q_array"]
-    UPD = data_dict["ReducedData"]["PD_intensity"]
+    Q_array = data_dict["reducedData"]["Q_array"]
+    UPD = data_dict["reducedData"]["PD_intensity"]
     
         # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
@@ -548,9 +548,9 @@ def reduceFlyscanToQR(path, filename, deleteExisting=True):
             else:
                 Sample = dict()
                 Sample["RawData"]=importFlyscan(path, filename)         #import data
-                Sample["ReducedData"]= calculatePD_Fly(Sample)       # Correct gains
-                Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
-                Sample["ReducedData"].update(rebinData(Sample))         #Rebin data
+                Sample["reducedData"]= calculatePD_Fly(Sample)       # Correct gains
+                Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
+                Sample["reducedData"].update(rebinData(Sample))         #Rebin data
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
                 # these are not fully reduced data, this is for web plot purpose. 
                 save_dict_to_hdf5(Sample, location, hdf_file)
@@ -574,8 +574,8 @@ def reduceStepScanToQR(path, filename, deleteExisting=True):
         else:
                 Sample = dict()
                 Sample["RawData"]=ImportStepScan(path, filename)
-                Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-                Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=1))
+                Sample["reducedData"]= CorrectUPDGainsStep(Sample)
+                Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=1))
                 # Create the group and dataset for the new data inside the hdf5 file for future use.
                 # these are not fully reduced data, this is for web plot purpose.
                 save_dict_to_hdf5(Sample, location, hdf_file)
@@ -588,18 +588,18 @@ if __name__ == "__main__":
     #Sample = reduceStepScanToQR("/home/parallels/Github/Matilda/TestData","USAXS_step.h5")
     #Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
         #pp.pprint(Sample)
-        #Sample["ReducedData"]= CorrectUPDGainsStep(Sample)
-        #Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-        #pp.pprint(Sample["ReducedData"])
+        #Sample["reducedData"]= CorrectUPDGainsStep(Sample)
+        #Sample["reducedData"].update(BeamCenterCorrection(Sample))
+        #pp.pprint(Sample["reducedData"])
     #PlotResults(Sample)
     #flyscan
     Sample = dict()
     Sample = reduceFlyscanToQR("./TestData","USAXS.h5",deleteExisting=True)
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
-    # Sample["ReducedData"]= CorrectUPDGainsFly(Sample)
-    # Sample["ReducedData"].update(BeamCenterCorrection(Sample))
-    # #pp.pprint(Sample["ReducedData"])
+    # Sample["reducedData"]= CorrectUPDGainsFly(Sample)
+    # Sample["reducedData"].update(BeamCenterCorrection(Sample))
+    # #pp.pprint(Sample["reducedData"])
     PlotResults(Sample)
 
   

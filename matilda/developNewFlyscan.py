@@ -36,17 +36,17 @@ def reduceFlyscan(path, filename, deleteExisting=False):
             # else:
                 Sample = dict()
                 Sample["RawData"]=importFlyscan(path, filename)                 #import data
-                Sample["ReducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
-                Sample["ReducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
-                Sample["ReducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
-                Sample["ReducedData"].update(smooth_r_data(Sample["ReducedData"]["PD_intensity"],     #smooth data data
-                                                        Sample["ReducedData"]["Q_array"], 
-                                                        Sample["ReducedData"]["PD_range"], 
-                                                        Sample["ReducedData"]["PD_error"], 
+                Sample["reducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
+                Sample["reducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
+                Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
+                Sample["reducedData"].update(smooth_r_data(Sample["reducedData"]["PD_intensity"],     #smooth data data
+                                                        Sample["reducedData"]["Q_array"], 
+                                                        Sample["reducedData"]["PD_range"], 
+                                                        Sample["reducedData"]["PD_error"], 
                                                         Sample["RawData"]["TimePerPoint"],
                                                         replaceNans=True))                 
                 Sample["BlankData"]=getBlankFlyscan()
-                Sample["ReducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
+                Sample["reducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
                 Sample["CalibratedData"]=(calibrateAndSubtractFlyscan(Sample))
                 #pp.pprint(Sample)
                 # TODO: calibration
@@ -61,14 +61,14 @@ def reduceFlyscan(path, filename, deleteExisting=False):
 def normalizeBlank(Sample):
     # This is a simple normalization of the blank data to the sample data. 
     # It will be used for background subtraction.
-    PeakIntensitySample = Sample["ReducedData"]["Maximum"]
+    PeakIntensitySample = Sample["reducedData"]["Maximum"]
     PeakIntensityBlank = Sample["BlankData"]["Maximum"]
     PeakToPeakTransmission = PeakIntensitySample/PeakIntensityBlank
 
 
-    PD_intensity = Sample["ReducedData"]["PD_intensity"]
+    PD_intensity = Sample["reducedData"]["PD_intensity"]
     PD_intensity = PD_intensity / PeakToPeakTransmission
-    PD_error = Sample["ReducedData"]["PD_error"]
+    PD_error = Sample["reducedData"]["PD_error"]
     PD_error = PD_error / PeakToPeakTransmission
     result = {"PD_intensity":PD_intensity,
             "PD_error":PD_error,
@@ -79,11 +79,11 @@ def normalizeBlank(Sample):
 
 def calibrateAndSubtractFlyscan(Sample):
     # This is a step wehre we subtract and calibrate the sample and Blank. 
-    PD_intensity = Sample["ReducedData"]["PD_intensity"]
+    PD_intensity = Sample["reducedData"]["PD_intensity"]
     BL_PD_intensity = Sample["BlankData"]["PD_intensity"]
-    PD_error = Sample["ReducedData"]["PD_error"]
+    PD_error = Sample["reducedData"]["PD_error"]
     BL_PD_error = Sample["BlankData"]["PD_error"]
-    Q_array = Sample["ReducedData"]["Q_array"]
+    Q_array = Sample["reducedData"]["Q_array"]
     BL_Q_array = Sample["BlankData"]["Q_array"]
 
     SMR_Qvec, SMR_Int, SMR_Error = subtract_data(Q_array, PD_intensity,PD_error, BL_Q_array, BL_PD_intensity, BL_PD_error)
@@ -91,10 +91,10 @@ def calibrateAndSubtractFlyscan(Sample):
     # find Qmin as the first point where we get above 3% of the background avleu and larger than instrument resolution
     IntRatio = PD_intensity / BL_PD_intensity
     # find point where the IntRatio is larger than 1.03
-    FWHMSample = Sample["ReducedData"]["FWHM"]
+    FWHMSample = Sample["reducedData"]["FWHM"]
     FWHMBlank = Sample["BlankData"]["FWHM"]
-    wavelength =  Sample["ReducedData"]["wavelength"]
-    PeakToPeakTransmission =  Sample["ReducedData"]["PeakToPeakTransmission"]
+    wavelength =  Sample["reducedData"]["wavelength"]
+    PeakToPeakTransmission =  Sample["reducedData"]["PeakToPeakTransmission"]
     SaTransCounts = Sample['RawData']['metadata']['trans_pin_counts']
     SaTransGain = Sample['RawData']['metadata']['trans_pin_gain']
     SaI0Counts = Sample['RawData']['metadata']['trans_I0_counts']
@@ -192,7 +192,7 @@ def getBlankFlyscan():
 def calculatePDError(Sample, isBlank=False):
     #OK, another incarnation of the error calculations...
     UPD_array = Sample["RawData"]["UPD_array"]
-    # USAXS_PD = Sample["ReducedData"]["PD_intensity"]
+    # USAXS_PD = Sample["reducedData"]["PD_intensity"]
     MeasTimeCts = Sample["RawData"]["TimePerPoint"]
     Frequency=1e6   #this is frequency of clock fed into mca1
     MeasTime = MeasTimeCts/Frequency    #measurement time in seconds per point
@@ -200,8 +200,8 @@ def calculatePDError(Sample, isBlank=False):
         UPD_gains=Sample["BlankData"]["UPD_gains"]
         UPD_bkgErr = Sample["BlankData"]["UPD_bkgErr"]    
     else:
-        UPD_gains=Sample["ReducedData"]["UPD_gains"]
-        UPD_bkgErr = Sample["ReducedData"]["UPD_bkgErr"]    
+        UPD_gains=Sample["reducedData"]["UPD_gains"]
+        UPD_bkgErr = Sample["reducedData"]["UPD_bkgErr"]    
 
     Monitor = Sample["RawData"]["Monitor"]
     I0AmpGain=Sample["RawData"]["metadata"]["I0AmpGain"]
@@ -233,9 +233,9 @@ def test_matildaLocal():
     #     print("File found")
     #open the file
     Sample = reduceFlyscan("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs","PPOH_25C_2_0068.h5",deleteExisting=True)    
-    Q_array = Sample["ReducedData"]["Q_array"]
-    UPD = Sample["ReducedData"]["PD_intensity"]
-    Error = Sample["ReducedData"]["PD_error"]
+    Q_array = Sample["reducedData"]["Q_array"]
+    UPD = Sample["reducedData"]["PD_intensity"]
+    Error = Sample["reducedData"]["PD_error"]
  
 
 if __name__ == "__main__":
