@@ -1,20 +1,25 @@
 '''
-    New, calibrated SAXS/WAXS code. 
+    convertSWAXScalibrated.py
+        New, calibrated SAXS/WAXS code. 
+    use: 
+    process2Ddata(path, filename, deleteExisting=False)
+
     returns dictionary of this type:
             result["SampleName"]=sampleName
             result["BlankName"]=blankName
-            result["raw"] =  {"Intensity":np.ravel(intensity), 
+            result["reducedData"] =  {"Intensity":np.ravel(intensity), 
                               "Q":np.ravel(q),
                               "Error":np.ravel(error)}
-            result["calibrated"] = {"Intensity":np.ravel(intcalib),
+            result["CalibratedData"] = {"Intensity":np.ravel(intcalib),
                                     "Q":np.ravel(qcalib),
                                     "Error":np.ravel(errcalib),
                                     }  
+    Does:
     Convert SAXS and WAXS area detector data from the HDF5 format to the 1Ddata
     Converts Nika parameters to Fit2D format and then uses pyFAI to convert to poni format
-    TODO: check in detail that we get same absolute intensity from the Nika calibration. 
+    Both SAXS and WAXS data give sufficiently same data as Nika to be considered same.  
+    TODO: store both reduced data and NXcanSAS data in original hdf file, read from file if they exist and skip data reduction. 
     Only some metadata are kept to keep all more reasonable on size
-    TODO: store NCsanSAS data
 '''
 
 
@@ -91,10 +96,10 @@ def process2Ddata(path, filename, deleteExisting=False):
                 pathBl, filenameBl = FindLastBlankScan(plan_name,NumScans=1)
             else:
                 if plan_name == "SAXS":
-                    pathBl="./TestData/TestSet/02_21_Megan_saxs"
+                    pathBl=path
                     filenameBl="HeaterBlank_0060.hdf"
                 else:
-                    pathBl="./TestData/TestSet/02_21_Megan_waxs"
+                    pathBl=path
                     filenameBl="HeaterBlank_0060.hdf"                   
             blank = importADData(pathBl, filenameBl)    #this is for blank path and blank, need to find them somehow
             Sample["calib2DData"] = calibrateAD2DData(Sample, blank)
@@ -114,10 +119,10 @@ def process2Ddata(path, filename, deleteExisting=False):
             result=dict()
             result["SampleName"]=sampleName
             result["BlankName"]=blankName
-            result["raw"] =  {"Intensity":np.ravel(intensity), 
+            result["reducedData"] =  {"Intensity":np.ravel(intensity), 
                               "Q":np.ravel(q),
                               "Error":np.ravel(error)}
-            result["calibrated"] = {"Intensity":np.ravel(intcalib),
+            result["CalibratedData"] = {"Intensity":np.ravel(intcalib),
                                     "Q":np.ravel(qcalib),
                                     "Error":np.ravel(errcalib),
                                     }  
@@ -220,7 +225,7 @@ def calibrateAD2DData(Sample, Blank):
     I0b = blankI0 / blankI0gain
     #nika also divides by this as solid angle correction:
     #			variable solidAngle = PixelSizeX / SampleToCCDDistance * PixelSizeY / SampleToCCDDistance
-    solidAngle = pixel_size / detector_distance * pixel_size / detector_distance
+    solidAngle = pixel_size**2 / detector_distance**2
 
     preFactor = corrFactor /I0s/(sampleThickness*0.1)/solidAngle          #includes mm to cm conversion
     #print(f"Sample Thickness: {sampleThickness}, CorrFactor: {corrFactor}, Sample I0: {I0s}, Blank I0: {I0b}")
@@ -352,13 +357,13 @@ def PlotResults(data_dict):
     #           "Q":np.ravel(qcalib),
     #           "Error":np.ravel(errcalib),
     #           }  
-    Q_raw = data_dict["raw"]["Q"]
-    Int_raw = data_dict["raw"]["Intensity"]
-    Q_array = data_dict["calibrated"]["Q"]
-    Intensity = data_dict["calibrated"]["Intensity"]    # Plot ydata against xdata
+    Q_red = data_dict["reducedData"]["Q"]
+    Int_red = data_dict["reducedData"]["Intensity"]
+    Q = data_dict["CalibratedData"]["Q"]
+    Intensity = data_dict["CalibratedData"]["Intensity"]    # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
-    plt.plot(Q_raw, Int_raw, linestyle='-')  # You can customize the marker and linestyle
-    plt.plot(Q_array, Intensity, linestyle='-')  # You can customize the marker and linestyle
+    plt.plot(Q_red, Int_red, linestyle='-')  # You can customize the marker and linestyle
+    plt.plot(Q, Intensity, linestyle='-')  # You can customize the marker and linestyle
     plt.title('Plot of Intensity vs. Q')
     plt.xlabel('log(Q) [1/A]')
     plt.ylabel('Intensity')

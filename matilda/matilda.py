@@ -14,6 +14,7 @@ import socket
 import logging
 from logging.handlers import RotatingFileHandler
 import time
+import os
 import datetime
 
 
@@ -70,7 +71,15 @@ BeruskaListOfWAXSScans = [['./TestData/TestSet/02_21_Megan_waxs','HeaterBlank_00
 
 
 # Configure logging
-handler = RotatingFileHandler('matilda.log', maxBytes=200000, backupCount=1)
+# Get the directory of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Define the log directory path
+log_dir = os.path.join(script_dir, 'log')
+# Create the log directory if it doesn't exist
+os.makedirs(log_dir, exist_ok=True)
+# Define the log file path
+log_file = os.path.join(log_dir, 'matilda.log')
+handler = RotatingFileHandler(log_file, maxBytes=200000, backupCount=1)
 logging.basicConfig(
     handlers=[handler],
     level=logging.INFO,        # Set the logging level
