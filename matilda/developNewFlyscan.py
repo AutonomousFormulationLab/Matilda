@@ -1,5 +1,29 @@
 '''
 Here we develop new code which then moves to proper package
+TODO:
+    convertFlyscancalibrated.py
+        New, calibrated Flyscan code. 
+    use: 
+    processFlyscandata(path, filename, blankPath=None, blankFilename=None, deleteExisting=False)
+
+    returns dictionary of this type:
+            result["SampleName"]=sampleName
+            result["BlankName"]=blankName
+            result["reducedData"] =  {"Intensity":np.ravel(intensity), 
+                              "Q":np.ravel(q),
+                              "Error":np.ravel(error)}
+            result["CalibratedData"] = {"Intensity":np.ravel(intcalib),
+                                    "Q":np.ravel(qcalib),
+                                    "Error":np.ravel(errcalib),
+                                    }  
+    Does:
+    Convert Flyscan USAXS data from the HDF5 format to the 1Ddata
+    Decide if we need to do desmearing, not ready yet.   
+    TODO: 
+    Add background path and name as input, set to None as default, if set as input then do subtarcting and calibration.
+        If not provided, stop with reduction before subtraction and return None for calibrated data. 
+    Store both reduced data and NXcanSAS data in original hdf file, read from file if they exist and skip data reduction. 
+    Only some metadata are kept to keep all more reasonable on size
 '''
 import h5py
 import numpy as np

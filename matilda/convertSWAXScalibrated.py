@@ -2,7 +2,7 @@
     convertSWAXScalibrated.py
         New, calibrated SAXS/WAXS code. 
     use: 
-    process2Ddata(path, filename, deleteExisting=False)
+    process2Ddata(path, filename, blankPath=None, blankFilename=None, deleteExisting=False)
 
     returns dictionary of this type:
             result["SampleName"]=sampleName
@@ -18,7 +18,10 @@
     Convert SAXS and WAXS area detector data from the HDF5 format to the 1Ddata
     Converts Nika parameters to Fit2D format and then uses pyFAI to convert to poni format
     Both SAXS and WAXS data give sufficiently same data as Nika to be considered same.  
-    TODO: store both reduced data and NXcanSAS data in original hdf file, read from file if they exist and skip data reduction. 
+    TODO: 
+    Add background path and name as input, set to None as default, if set as input then do subtarcting and calibration.
+        If not provided, stop with reduction before subtraction and return None for calibrated data. 
+    Store both reduced data and NXcanSAS data in original hdf file, read from file if they exist and skip data reduction. 
     Only some metadata are kept to keep all more reasonable on size
 '''
 
