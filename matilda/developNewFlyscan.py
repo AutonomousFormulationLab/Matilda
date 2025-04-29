@@ -35,52 +35,85 @@ import os
 from convertUSAXS import rebinData
 from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
+from desmearing import IN3_DesmearData
 
 
 
 #develop calibrated flyscan and step scan data routines
 # this will check if NXcanSAS data exist and if not, it will create properly calibrated NXcanSAS
 # data. It needs Blank and Sample data.
-def reduceFlyscan(path, filename, deleteExisting=False):
+def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExisting=False):
     # Open the HDF5 file in read/write mode
     #location = 'entry/displayData/'
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
-            # Check if the group 'location' exists, if yes, bail out as this is all needed. 
-            # if deleteExisting:
-            #     # Delete the group
-            #     del hdf_file[location]
-            #     print("Deleted existing group 'entry/displayData'.")
+        # Check if the group 'location' exists, if yes, bail out as this is all needed. 
+        # if deleteExisting:
+        #     # Delete the group
+        #     del hdf_file[location]
+        #     print("Deleted existing group 'entry/displayData'.")
 
-            # if location in hdf_file:
-            #     # exists, so lets reuse the data from the file
-            #     Sample = dict()
-            #     Sample = load_dict_from_hdf5(hdf_file, location)
-            #     print("Used existing data")
-            #     return Sample
-            # else:
-                Sample = dict()
-                Sample["RawData"]=importFlyscan(path, filename)                 #import data
-                Sample["reducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
-                Sample["reducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
-                Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
-                Sample["reducedData"].update(smooth_r_data(Sample["reducedData"]["PD_intensity"],     #smooth data data
-                                                        Sample["reducedData"]["Q_array"], 
-                                                        Sample["reducedData"]["PD_range"], 
-                                                        Sample["reducedData"]["PD_error"], 
-                                                        Sample["RawData"]["TimePerPoint"],
-                                                        replaceNans=True))                 
-                Sample["BlankData"]=getBlankFlyscan()
+        # if location in hdf_file:
+        #     # exists, so lets reuse the data from the file
+        #     Sample = dict()
+        #     Sample = load_dict_from_hdf5(hdf_file, location)
+        #     print("Used existing data")
+        #     return Sample
+        # else:
+            Sample = dict()
+            Sample["RawData"]=importFlyscan(path, filename)                 #import data
+            Sample["reducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
+            Sample["reducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
+            Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
+            Sample["reducedData"].update(smooth_r_data(Sample["reducedData"]["Intensity"],     #smooth data data
+                                                    Sample["reducedData"]["Q"], 
+                                                    Sample["reducedData"]["PD_range"], 
+                                                    Sample["reducedData"]["Error"], 
+                                                    Sample["RawData"]["TimePerPoint"],
+                                                    replaceNans=True))                 
+
+            if blankPath is not None and blankFilename is not None:               
+                Sample["BlankData"]=getBlankFlyscan(blankPath, blankFilename)
                 Sample["reducedData"].update(normalizeBlank(Sample))          # Normalize sample by dividing by transmission for subtraction
                 Sample["CalibratedData"]=(calibrateAndSubtractFlyscan(Sample))
                 #pp.pprint(Sample)
-                # TODO: calibration
+                # TODO: check calibration
                 # TODO: fix rebinning for 3 input waves returning 4 waves with dQ
                 Sample["CalibratedData"].update(rebinData(Sample, num_points=500, isSMRData=True))         #Rebin data
                 # TODO: desmearing here
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
+                SlitLength=0.03
+                DesmearNumberOfIterations = 10
+                SMR_Int =Sample["CalibratedData"]["SMR_Int"]
+                SMR_Error =Sample["CalibratedData"]["SMR_Error"]
+                SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
+                SMR_dQ =Sample["CalibratedData"]["SMR_Qvec"]*0.01
+                DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ = IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
+                desmearedData=list()
+                desmearedData={
+                     "Intensity":DSM_Int,
+                     "Q":DSM_Qvec,
+                     "Error":DSM_Error,
+                     "dQ":DSM_dQ,
+                }
+                Sample["CalibratedData"].update(desmearedData)
                 #save_dict_to_hdf5(Sample, location, hdf_file)
                 #print("Appended new data to 'entry/displayData'.")
-                return Sample
+            else:
+                #set calibrated data int he structure to None 
+                Sample["CalibratedData"] = {"SMR_Qvec":None,
+                                            "SMR_Int":None,
+                                            "SMR_Error":None,
+                                            "Kfactor":None,
+                                            "OmegaFactor":None,
+                                            "BlankName":None,
+                                            "thickness":None,
+                                            "units":"[cm2/cm3]",
+                                            "Intensity":None,
+                                            "Q":None,
+                                            "Error":None,
+                                            "dQ":None,
+                                            }
+            return Sample
 
 def normalizeBlank(Sample):
     # This is a simple normalization of the blank data to the sample data. 
@@ -90,12 +123,12 @@ def normalizeBlank(Sample):
     PeakToPeakTransmission = PeakIntensitySample/PeakIntensityBlank
 
 
-    PD_intensity = Sample["reducedData"]["PD_intensity"]
-    PD_intensity = PD_intensity / PeakToPeakTransmission
-    PD_error = Sample["reducedData"]["PD_error"]
-    PD_error = PD_error / PeakToPeakTransmission
-    result = {"PD_intensity":PD_intensity,
-            "PD_error":PD_error,
+    Intensity = Sample["reducedData"]["Intensity"]
+    Intensity = Intensity / PeakToPeakTransmission
+    Error = Sample["reducedData"]["Error"]
+    Error = Error / PeakToPeakTransmission
+    result = {"Intensity":Intensity,
+            "Error":Error,
             "PeakToPeakTransmission":PeakToPeakTransmission
             }
     return result
@@ -103,17 +136,17 @@ def normalizeBlank(Sample):
 
 def calibrateAndSubtractFlyscan(Sample):
     # This is a step wehre we subtract and calibrate the sample and Blank. 
-    PD_intensity = Sample["reducedData"]["PD_intensity"]
-    BL_PD_intensity = Sample["BlankData"]["PD_intensity"]
-    PD_error = Sample["reducedData"]["PD_error"]
-    BL_PD_error = Sample["BlankData"]["PD_error"]
-    Q_array = Sample["reducedData"]["Q_array"]
-    BL_Q_array = Sample["BlankData"]["Q_array"]
+    Intensity = Sample["reducedData"]["Intensity"]
+    BL_Intensity = Sample["BlankData"]["Intensity"]
+    Error = Sample["reducedData"]["Error"]
+    BL_Error = Sample["BlankData"]["Error"]
+    Q = Sample["reducedData"]["Q"]
+    BL_Q = Sample["BlankData"]["Q"]
 
-    SMR_Qvec, SMR_Int, SMR_Error = subtract_data(Q_array, PD_intensity,PD_error, BL_Q_array, BL_PD_intensity, BL_PD_error)
+    SMR_Qvec, SMR_Int, SMR_Error = subtract_data(Q, Intensity,Error, BL_Q, BL_Intensity, BL_Error)
     # TODO: trim, calibrate, 
     # find Qmin as the first point where we get above 3% of the background avleu and larger than instrument resolution
-    IntRatio = PD_intensity / BL_PD_intensity
+    IntRatio = Intensity / BL_Intensity
     # find point where the IntRatio is larger than 1.03
     FWHMSample = Sample["reducedData"]["FWHM"]
     FWHMBlank = Sample["BlankData"]["FWHM"]
@@ -131,8 +164,8 @@ def calibrateAndSubtractFlyscan(Sample):
     MSAXSCorrection = MeasuredTransmission / PeakToPeakTransmission
     QminSample = 4*np.pi*np.sin(np.radians(FWHMSample)/2)/wavelength
     QminBlank = 4*np.pi*np.sin(np.radians(FWHMBlank)/2)/wavelength
-    indexSample = np.searchsorted(Q_array, QminSample)
-    indexBlank = np.searchsorted(Q_array, QminBlank)
+    indexSample = np.searchsorted(Q, QminSample)
+    indexBlank = np.searchsorted(Q, QminBlank)
     indexRatio =  np.searchsorted(IntRatio, 1.03)
     largest_value = max(indexSample, indexBlank, indexRatio)
     SMR_Qvec = SMR_Qvec[largest_value-1 : ]    
@@ -160,16 +193,14 @@ def calibrateAndSubtractFlyscan(Sample):
             "units":"[cm2/cm3]"
             }
 
-def getBlankFlyscan():
+def getBlankFlyscan(blankPath, blankFilename):
       # need to get proper info from tiled on last collected Blank
       # for now fake by uusing defalut from test data
       # Then either get data from file, if exist or reduce, append, and return. 
       # We need the BL_QRS and calibration data.
-    BlankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
-    BlankFile="HeaterBlank_0060.h5"
     # Open the HDF5 file in read/write mode
     location = 'entry/blankData/'
-    with h5py.File(BlankPath+'/'+BlankFile, 'r+') as hdf_file:
+    with h5py.File(blankPath+'/'+blankFilename, 'r+') as hdf_file:
             # Check if the group 'location' exists, if yes, bail out as this is all needed. 
             # if deleteExisting:
             #     # Delete the group
@@ -184,23 +215,23 @@ def getBlankFlyscan():
                 return Blank
             else:
                 Blank = dict()
-                Blank["RawData"]=importFlyscan(BlankPath, BlankFile)         #import data
+                Blank["RawData"]=importFlyscan(blankPath, blankFilename)         #import data
                 BlTransCounts = Blank['RawData']['metadata']['trans_pin_counts']
                 BlTransGain = Blank['RawData']['metadata']['trans_pin_gain']
                 BlI0Counts = Blank['RawData']['metadata']['trans_I0_counts']
                 BlI0Gain = Blank['RawData']['metadata']['trans_I0_gain']
-                Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates PD_Intensity with corrected gains and background subtraction
-                Blank["BlankData"].update({"BlankName":BlankFile})          # add the name of the blank file
+                Blank["BlankData"]= calculatePD_Fly(Blank)                  # Creates Intensity with corrected gains and background subtraction
+                Blank["BlankData"].update({"BlankName":blankFilename})      # add the name of the blank file
                 Blank["BlankData"].update({"BlTransCounts":BlTransCounts})  # add the BlTransCounts
                 Blank["BlankData"].update({"BlTransGain":BlTransGain})      # add the BlTransGain
                 Blank["BlankData"].update({"BlI0Counts":BlI0Counts})        # add the BlI0Counts
                 Blank["BlankData"].update({"BlI0Gain":BlI0Gain})            # add the BlTransGain
                 Blank["BlankData"].update(calculatePDError(Blank, isBlank=True))          # Calculate UPD error, mostly the same as in Igor                
                 Blank["BlankData"].update(beamCenterCorrection(Blank,useGauss=0, isBlank=True)) #Beam center correction
-                Blank["BlankData"].update(smooth_r_data(Blank["BlankData"]["PD_intensity"],     #smooth data data
-                                                        Blank["BlankData"]["Q_array"], 
+                Blank["BlankData"].update(smooth_r_data(Blank["BlankData"]["Intensity"],     #smooth data data
+                                                        Blank["BlankData"]["Q"], 
                                                         Blank["BlankData"]["PD_range"], 
-                                                        Blank["BlankData"]["PD_error"], 
+                                                        Blank["BlankData"]["Error"], 
                                                         Blank["RawData"]["TimePerPoint"],
                                                         replaceNans=True )) 
                 # we need to return just the BlandData part 
@@ -216,7 +247,7 @@ def getBlankFlyscan():
 def calculatePDError(Sample, isBlank=False):
     #OK, another incarnation of the error calculations...
     UPD_array = Sample["RawData"]["UPD_array"]
-    # USAXS_PD = Sample["reducedData"]["PD_intensity"]
+    # USAXS_PD = Sample["reducedData"]["Intensity"]
     MeasTimeCts = Sample["RawData"]["TimePerPoint"]
     Frequency=1e6   #this is frequency of clock fed into mca1
     MeasTime = MeasTimeCts/Frequency    #measurement time in seconds per point
@@ -239,8 +270,8 @@ def calculatePDError(Sample, isBlank=False):
     SigmaRwave=np.sqrt((A**2 * SigmaMonitor**4)+(SigmaPDwDC**2 * ScaledMonitor**4)+((A**2 + SigmaPDwDC**2) * ScaledMonitor**2 * SigmaMonitor**2))
     SigmaRwave=SigmaRwave/(ScaledMonitor*(ScaledMonitor**2-SigmaMonitor**2))
     SigmaRwave=SigmaRwave * I0AmpGain			#fix for use of I0 gain here, the numbers were too low due to scaling of PD by I0AmpGain
-    PD_error=SigmaRwave/4		#2025-04 these values are simply too large on new APS-U USAXS instrument
-    result = {"PD_error":PD_error}
+    Error=SigmaRwave/4		#2025-04 these values are simply too large on new APS-U USAXS instrument
+    result = {"Error":Error}
     return result
 
 
@@ -256,11 +287,43 @@ def test_matildaLocal():
     # else:
     #     print("File found")
     #open the file
-    Sample = reduceFlyscan("C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs","PPOH_25C_2_0068.h5",deleteExisting=True)    
-    Q_array = Sample["reducedData"]["Q_array"]
-    UPD = Sample["reducedData"]["PD_intensity"]
-    Error = Sample["reducedData"]["PD_error"]
- 
+    samplePath = "C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs"
+    sampleName="PPOH_25C_2_0068.h5"
+    blankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
+    blankFilename="HeaterBlank_0060.h5"
+    Sample = processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)    
+    Q = Sample["reducedData"]["Q"]
+    UPD = Sample["reducedData"]["Intensity"]
+    Error = Sample["reducedData"]["Error"]
+    plt.figure(figsize=(6, 12))
+    plt.plot(Q, UPD, linestyle='-')  # You can customize the marker and linestyle
+    #plt.plot(Q, Intensity, linestyle='-')  # You can customize the marker and linestyle
+    plt.title('Plot of Intensity vs. Q')
+    plt.xlabel('log(Q) [1/A]')
+    plt.ylabel('Intensity')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.grid(True)
+    plt.show() 
+    SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"] 
+    SMR_Int =Sample["CalibratedData"]["SMR_Int"] 
+    #SMR_Error =Sample["CalibratedData"]["SMR_Error"] 
+    DSM_Qvec =Sample["CalibratedData"]["Q"] 
+    DSM_Int =Sample["CalibratedData"]["Intensity"] 
+    #DSM_Error =Sample["CalibratedData"]["Error"] 
+    plt.figure(figsize=(6, 12))
+    plt.plot(SMR_Qvec, SMR_Int, linestyle='-')  # You can customize the marker and linestyle
+    plt.plot(DSM_Qvec, DSM_Int, linestyle='-')  # You can customize the marker and linestyle
+    plt.title('Plot of Intensity vs. Q')
+    plt.xlabel('log(Q) [1/A]')
+    plt.ylabel('Intensity')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.grid(True)
+    plt.show() 
+
+
+
 
 if __name__ == "__main__":
     #test_matilda()

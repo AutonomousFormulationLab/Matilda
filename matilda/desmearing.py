@@ -15,7 +15,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-from scipy.integrate import simps
+from scipy.integrate import simpson
 
 
 
@@ -155,7 +155,7 @@ def IN3_SmearDataFastFunc(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to
     Smear_Int = interp_func(InterSmear_Q)
 
     # Integrate the intensity over the slit
-    integrated_intensity = simps(Smear_Int, Smear_Q)
+    integrated_intensity = simpson(Smear_Int, Smear_Q)
 
     return integrated_intensity
 
@@ -368,7 +368,7 @@ def IN3_OneDesmearIteration(DesmearIntWave, DesmearQWave, DesmearEWave, origSmea
 
     # Calculate errors
     DesmearEWave.fill(0)
-    IN3_GetErrors(origSmearedErr, origSmearedInt, DesmearIntWave, DesmearEWave, DesmearQWave)
+    IN3_GetErrors(origSmearedErr, origSmearedInt, DesmearIntWave, DesmearQWave)
 
     return 0
 

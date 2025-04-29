@@ -189,8 +189,8 @@ def calculatePD_Fly(data_dict):
         # Frequency=1e6  #this is to keep in sync with Igor code. 
     PD_Intensity = ((UPD_array-TimeInSec*updBkg)/(Frequency*Gains)) / (Monitor/I0AmpGain)  
     PD_error = 0.01*PD_Intensity   #this is fake error for QR conversion
-    result = {"PD_intensity":PD_Intensity,
-              "PD_error":PD_error,
+    result = {"Intensity":PD_Intensity,
+              "Error":PD_error,
               "PD_range":GainsIndx,
               "UPD_gains":Gains,
               "UPD_bkgErr":updBkgErr}
@@ -208,13 +208,13 @@ def rebinData(data_dict,num_points=200, isSMRData=False):
                 "SMR_Error":SMR_ErrorNew  
                 }    
     else:
-        Q_array = data_dict["reducedData"]["Q_array"]
-        R_array = data_dict["reducedData"]["PD_intensity"]
-        S_array = data_dict["reducedData"]["PD_error"]
+        Q_array = data_dict["reducedData"]["Q"]
+        R_array = data_dict["reducedData"]["Intensity"]
+        S_array = data_dict["reducedData"]["Error"]
         Q_arrayNew, R_arrayNew, S_arrayNew = rebin_QRSdata(Q_array, R_array,S_array, num_points)
-        results = {"Q_array":Q_arrayNew,
-                "PD_intensity":R_arrayNew,
-                "PD_error":S_arrayNew  
+        results = {"Q":Q_arrayNew,
+                "Intensity":R_arrayNew,
+                "Error":S_arrayNew  
                 }
     return results
 
@@ -311,7 +311,7 @@ def CorrectUPDGainsStep(data_dict):
 
         #Correct UPD for gains and monitor
     UPD_corrected = (UPD_array*I0gain)/(AmpGain*Monitor)
-    result = {"PD_intensity":UPD_corrected}
+    result = {"Intensity":UPD_corrected}
     return result
 
 ## Common steps go here
@@ -322,9 +322,9 @@ def beamCenterCorrection(data_dict, useGauss=1, isBlank=False):
     ARangles = data_dict["RawData"]["ARangles"]
     instrument_dict = data_dict["RawData"]["instrument"]
     if isBlank:
-        UPD_array = data_dict["BlankData"]["PD_intensity"]
+        UPD_array = data_dict["BlankData"]["Intensity"]
     else:
-        UPD_array = data_dict["reducedData"]["PD_intensity"]
+        UPD_array = data_dict["reducedData"]["Intensity"]
 
         #plt.figure(figsize=(6, 12))
         #plt.plot(ARangles, UPD_array, marker='o', linestyle='-')  # You can customize the marker and linestyle
@@ -429,7 +429,7 @@ def beamCenterCorrection(data_dict, useGauss=1, isBlank=False):
         #Q_array_log = np.sign(Q_array)*np.log(np.abs(Q_array))
         #pp.pprint(Q_array)
 
-    results = {"Q_array":Q_array,
+    results = {"Q":Q_array,
             "Chi-Square":chi_square,
             "Center":x0,
             "Maximum":amplitude,
@@ -509,17 +509,17 @@ def smooth_r_data(intensity, qvector, pd_range, r_error, meas_time, replaceNans=
                 r_error[i] = r_error[i]
 
     intensity = np.exp(smooth_intensity)
-    return  {"PD_intensity":intensity,
-              "PD_error":r_error} 
+    return  {"Intensity":intensity,
+              "Error":r_error} 
 
 def PlotResults(data_dict):
         # Plot UPD vs Q.
-    Q_array = data_dict["reducedData"]["Q_array"]
-    UPD = data_dict["reducedData"]["PD_intensity"]
+    Q = data_dict["reducedData"]["Q"]
+    Intensity = data_dict["reducedData"]["Intensity"]
     
         # Plot ydata against xdata
     plt.figure(figsize=(6, 12))
-    plt.plot(Q_array, UPD, marker='o', linestyle='-')  # You can customize the marker and linestyle
+    plt.plot(Q, Intensity, marker='o', linestyle='-')  # You can customize the marker and linestyle
     plt.title('Plot of UPD vs. Q')
     plt.xlabel('log(Q) [1/A]')
     plt.ylabel('UPD')

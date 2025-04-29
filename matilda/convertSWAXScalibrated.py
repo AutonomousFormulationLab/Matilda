@@ -52,7 +52,7 @@ from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 ## main code here
-def process2Ddata(path, filename, deleteExisting=False):
+def process2Ddata(path, filename, blankPath=None, blankFilename=None, deleteExisting=False):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
     location = 'entry/reducedData/'    #we need to make sure we have separate NXcanSAS data here. Is it still entry? 
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
@@ -94,31 +94,41 @@ def process2Ddata(path, filename, deleteExisting=False):
             else:
                 plan_name="WAXS"
             #TODO: write function returning Blank path and file names. 
+            # this needs to be hoisted up the chain in teh future
             current_hostname = socket.gethostname()
             if current_hostname == 'usaxscontrol.xray.aps.anl.gov':
-                pathBl, filenameBl = FindLastBlankScan(plan_name,NumScans=1)
+                blankPath, blankFilename = FindLastBlankScan(plan_name,NumScans=1)
             else:
                 if plan_name == "SAXS":
-                    pathBl=path
-                    filenameBl="HeaterBlank_0060.hdf"
+                    blankPath=path
+                    blankFilename="HeaterBlank_0060.hdf"
                 else:
-                    pathBl=path
-                    filenameBl="HeaterBlank_0060.hdf"                   
-            blank = importADData(pathBl, filenameBl)    #this is for blank path and blank, need to find them somehow
-            Sample["calib2DData"] = calibrateAD2DData(Sample, blank)
-            Sample["reducedData"] = reduceADData(Sample, useRawData=True)   #this generates Int vs Q for raw data plot
-            Sample["calib1Ddata"] = reduceADData(Sample, useRawData=False)  #this generates Calibrated 1D data.
-            #append the data here into the hdf5 file for future use, do not append 2D data to save space, 
-            
+                    blankPath=path
+                    blankFilename="HeaterBlank_0060.hdf"    
+            #end of block moving up later
 
+            Sample["reducedData"] = reduceADData(Sample, useRawData=True)   #this generates Int vs Q for raw data plot
             q = Sample["reducedData"]["Q"]
             intensity = Sample["reducedData"]["Intensity"]
-            error = Sample["reducedData"]["Error"]
-            qcalib= Sample["calib1Ddata"]["Q"]
-            intcalib= Sample["calib1Ddata"]["Intensity"]
-            errcalib= Sample["calib1Ddata"]["Error"]
+            error = Sample["reducedData"]["Error"]            
             sampleName = Sample["RawData"]["SampleName"]
-            blankName = Sample["calib2DData"]["BlankName"]
+            
+            if blankPath is not None and blankFilename is not None:               
+                blank = importADData(blankPath, blankFilename)    #this is for blank path and blank, need to find them somehow
+                Sample["calib2DData"] = calibrateAD2DData(Sample, blank)
+                Sample["calib1Ddata"] = reduceADData(Sample, useRawData=False)  #this generates Calibrated 1D data.
+                #append the data here into the hdf5 file for future use, do not append 2D data to save space,  
+                qcalib= Sample["calib1Ddata"]["Q"]
+                intcalib= Sample["calib1Ddata"]["Intensity"]
+                errcalib= Sample["calib1Ddata"]["Error"]
+                blankName = Sample["calib2DData"]["BlankName"]
+            else:
+                qcalib= None
+                intcalib= None
+                errcalib= None
+                blankName = None
+
+
             result=dict()
             result["SampleName"]=sampleName
             result["BlankName"]=blankName
