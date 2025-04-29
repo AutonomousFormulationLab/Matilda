@@ -413,18 +413,7 @@ def IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, S
     tmpWork_Error = np.copy(SMR_Error)
     tmpWork_Qvec = np.copy(SMR_Qvec)
     tmpWork_dQ = np.copy(SMR_dQ)
-    # remove Nans form errors as that seems to break stuff
-    # Create a mask for NaNs
-    nan_mask = np.isnan(tmpWork_Error)
-    # Indices of non-NaN values
-    x_non_nan = tmpWork_Qvec[~nan_mask]
-    y_non_nan = tmpWork_Error[~nan_mask]
-    # Create an interpolation function
-    interp_func = interp1d(x_non_nan, y_non_nan, kind='linear', fill_value='extrapolate')
-    # Replace NaNs with interpolated values
-    tmpWork_Error[nan_mask] = interp_func(tmpWork_Qvec[nan_mask])   
-
-
+ 
     DesmNormalizedError = np.copy(SMR_Int)
     absNormalizedError = np.copy(SMR_Int)
     numOfPoints = len(SMR_Int)

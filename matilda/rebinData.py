@@ -20,6 +20,8 @@
 
 import numpy as np
 from scipy.optimize import minimize
+from scipy.interpolate import interp1d
+
 
 
 def rebin_QRSdata(Wx, Wy, Ws, NumberOfPoints):
@@ -57,6 +59,18 @@ def rebin_QRSdata(Wx, Wy, Ws, NumberOfPoints):
     Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      
     Error_merged = np.concatenate((Ws_less, Ws_greater2))    
     dQ_merged = np.concatenate((Wdx_less, Wxwidth)) 
+    # remove Nans form errors as that seems to break stuff latrer
+    # Create a mask for NaNs
+    nan_mask = np.isnan(Error_merged)
+    # Indices of non-NaN values
+    x_non_nan = Q_merged[~nan_mask]
+    y_non_nan = Error_merged[~nan_mask]
+    # Create an interpolation function
+    interp_func = interp1d(x_non_nan, y_non_nan, kind='linear', fill_value='extrapolate')
+    # Replace NaNs with interpolated values
+    Error_merged[nan_mask] = interp_func(Q_merged[nan_mask])   
+
+
     return Q_merged, Intensity_merged, Error_merged, dQ_merged
 
 
