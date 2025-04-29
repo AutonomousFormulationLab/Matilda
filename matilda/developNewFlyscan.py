@@ -86,7 +86,7 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
                 SMR_Int =Sample["CalibratedData"]["SMR_Int"]
                 SMR_Error =Sample["CalibratedData"]["SMR_Error"]
                 SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
-                SMR_dQ =Sample["CalibratedData"]["SMR_Qvec"]*0.01
+                SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
                 DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ = IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
                 desmearedData=list()
                 desmearedData={

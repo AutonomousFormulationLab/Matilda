@@ -202,10 +202,11 @@ def rebinData(data_dict,num_points=200, isSMRData=False):
         SMR_Int = data_dict["CalibratedData"]["SMR_Int"]
         SMR_Qvec = data_dict["CalibratedData"]["SMR_Qvec"]
         SMR_Error = data_dict["CalibratedData"]["SMR_Error"]
-        SMR_QvecNew, SMR_IntNew, SMR_ErrorNew = rebin_QRSdata(SMR_Qvec, SMR_Int,SMR_Error, num_points)
+        SMR_QvecNew, SMR_IntNew, SMR_ErrorNew, SMR_dQ = rebin_QRSdata(SMR_Qvec, SMR_Int,SMR_Error, num_points)
         results = {"SMR_Qvec":SMR_QvecNew,
                 "SMR_Int":SMR_IntNew,
-                "SMR_Error":SMR_ErrorNew  
+                "SMR_Error":SMR_ErrorNew,
+                "SMR_dQ":SMR_dQ,
                 }    
     else:
         Q_array = data_dict["reducedData"]["Q"]

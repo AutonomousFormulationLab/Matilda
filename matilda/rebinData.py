@@ -30,27 +30,34 @@ def rebin_QRSdata(Wx, Wy, Ws, NumberOfPoints):
     The function will return the merged data from both parts.
     The rebinning is done using the rebin_log_data function, which takes care of the logarithmic scaling.     
     '''
+    # create Wdx array based on Wx
+    Wdx = np.zeros(len(Wx))
+    Wdx[1:] = Wx[1:] - Wx[:-1]
+    Wdx[0] = Wdx[1]  # Set the first element to the same value as the second element        
     # Split arrays based on the condition Q < 0.0002
     mask_less = Wx < 0.0002
     Wx_less = Wx[mask_less]
     Wy_less = Wy[mask_less]
     Ws_less = Ws[mask_less]
+    Wdx_less = Wdx[mask_less]
 
     # Split arrays based on the condition Q > 0.0002
     mask_greater = Wx > 0.0002
     Wx_greater = Wx[mask_greater]
     Wy_greater = Wy[mask_greater]
     Ws_greater = Ws[mask_greater]
+    Wdx_greater = Wdx[mask_greater]
 
     MinStep = Wx_greater[1] - Wx_greater[0]
 
-    Wx_greater2, Wy_greater2, W1, W2, W3, W4, W5, Ws_greater2, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep, Wsdev=Ws_greater, Wxsdev=None, Wxwidth=None, W1=None, W2=None, W3=None, W4=None, W5=None)
+    Wx_greater2, Wy_greater2, W1, W2, W3, W4, W5, Ws_greater2, Wxsdev, Wxwidth = rebin_log_data(Wx_greater, Wy_greater, NumberOfPoints, MinStep, Wsdev=Ws_greater, Wxsdev=None, Wxwidth=Wdx_greater, W1=None, W2=None, W3=None, W4=None, W5=None)
 
 
     Q_merged = np.concatenate((Wx_less, Wx_greater2))
     Intensity_merged = np.concatenate((Wy_less, Wy_greater2))      
-    Error_merged = np.concatenate((Ws_less, Ws_greater2))      
-    return Q_merged, Intensity_merged, Error_merged
+    Error_merged = np.concatenate((Ws_less, Ws_greater2))    
+    dQ_merged = np.concatenate((Wdx_less, Wxwidth)) 
+    return Q_merged, Intensity_merged, Error_merged, dQ_merged
 
 
 
