@@ -81,13 +81,13 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
                 Sample["CalibratedData"].update(rebinData(Sample, num_points=500, isSMRData=True))         #Rebin data
                 # TODO: desmearing here
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
-                SlitLength=0.03
-                DesmearNumberOfIterations = 10
+                slitLength=Sample["CalibratedData"]["slitLength"]
+                #DesmearNumberOfIterations = 10
                 SMR_Int =Sample["CalibratedData"]["SMR_Int"]
                 SMR_Error =Sample["CalibratedData"]["SMR_Error"]
                 SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
                 SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
-                DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ = IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
+                DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ = IN3_DesmearData(slitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
                 desmearedData=list()
                 desmearedData={
                      "Intensity":DSM_Int,
@@ -177,6 +177,8 @@ def calibrateAndSubtractFlyscan(Sample):
     thickness = Sample["RawData"]["sample"]['thickness']
     BLPeakMax = Sample["BlankData"]["Maximum"]
     BlankName = Sample["BlankData"]["BlankName"]
+    #Igor:	variable SlitLength=0.5*((4*pi)/wavelength)*sin(PhotoDiodeSize/(2*SDDistance))
+    slitLength = 0.5*((4*np.pi)//wavelength)*np.sin(UPDSize/(2*SDD))
     OmegaFactor= (UPDSize/SDD)*np.radians(FWHMBlank)
     Kfactor=BLPeakMax*OmegaFactor*thickness * 0.1 
     #apply calibration
@@ -190,6 +192,7 @@ def calibrateAndSubtractFlyscan(Sample):
             "OmegaFactor":OmegaFactor,
             "BlankName":BlankName,
             "thickness":thickness,
+            "slitLength":slitLength,
             "units":"[cm2/cm3]"
             }
 

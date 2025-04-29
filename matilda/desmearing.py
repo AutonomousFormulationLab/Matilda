@@ -295,7 +295,7 @@ def smooth_errors(errors, window_len=3):
     return smoothed
 
 
-def IN3_OneDesmearIteration(DesmearIntWave, DesmearQWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError):
+def IN3_OneDesmearIteration(SlitLength, DesmearIntWave, DesmearQWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError):
     """
     Perform one iteration of the desmearing process.
 
@@ -318,9 +318,9 @@ def IN3_OneDesmearIteration(DesmearIntWave, DesmearQWave, DesmearEWave, origSmea
         0 if successful, 1 if extension failed.
     """
     # Retrieve parameters from a hypothetical settings object
-    BackgroundFunction = "some_background_function"  # Placeholder
-    SlitLength = 1.0  # Placeholder
-    NumberOfIterations = 0  # Placeholder
+    # in Igor GUI system these are global poarameters. 
+    BackgroundFunction = "flat"  # There are four choises of extension functions. Typically we use this one.
+    #NumberOfIterations = 0  # Placeholder
     numOfPoints = len(DesmearIntWave)
     BckgStartQ = DesmearQWave[-1] / 1.5
 
@@ -358,7 +358,7 @@ def IN3_OneDesmearIteration(DesmearIntWave, DesmearQWave, DesmearEWave, origSmea
         else:
             DesmearIntWave[i] = DesmearIntWave[i]
 
-    NumberOfIterations += 1
+    #NumberOfIterations += 1
 
     # Remove extremes from normalized error
     min_loc = np.argmin(NormalizedError)
@@ -384,7 +384,7 @@ def IN2G_RemNaNsFromAWave(wave):
 
 
 
-def IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
+def IN3_DesmearData(SlitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
     """
     Perform the desmearing process on the provided data.
 
@@ -423,7 +423,7 @@ def IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, S
     NumIterations = 0
 
     while True:
-        ExtensionFailed = IN3_OneDesmearIteration(tmpWork_Int, tmpWork_Qvec, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
+        ExtensionFailed = IN3_OneDesmearIteration(SlitLength,tmpWork_Int, tmpWork_Qvec, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
         if ExtensionFailed:
             return None, None, None, None
 
@@ -442,6 +442,6 @@ def IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, S
     DSM_Qvec = np.copy(tmpWork_Qvec)
     DSM_Error = np.abs(tmpWork_Error)  # Remove negative values
     DSM_dQ = np.copy(tmpWork_dQ)
-
+    print(NumIterations)
     return DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ
 
