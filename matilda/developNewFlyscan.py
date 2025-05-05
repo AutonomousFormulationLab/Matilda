@@ -4,7 +4,7 @@ TODO:
     convertFlyscancalibrated.py
         New, calibrated Flyscan code. 
     use: 
-    processFlyscandata(path, filename, blankPath=None, blankFilename=None, deleteExisting=False)
+    processFlyscan(path, filename, blankPath=None, blankFilename=None, deleteExisting=False)
 
     returns dictionary of this type:
             result["SampleName"]=sampleName
