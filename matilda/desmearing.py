@@ -211,7 +211,7 @@ def smearIntensityArray(Int_to_smear, Q_vec_sm, slitLength):
     
     return Smeared_int
 
-def IN3_CalculateLineAverage(WaveY, WaveX, ivalue):
+def calculateLineAverage(WaveY, WaveX, ivalue):
     """
     Calculate line average without doing a line fit.
 
@@ -265,7 +265,7 @@ def calculateErrors(SmErrors, SmIntensity, FitIntensity, Qvector):
 
     for i in range(2, imax - 2):
         if np.isfinite(FitIntensity[i - 2]) and np.isfinite(FitIntensity[i]) and np.isfinite(FitIntensity[i + 1]) and np.isfinite(FitIntensity[i + 2]):
-            DsmErrors[i] += np.abs(IN3_CalculateLineAverage(FitIntensity, Qvector, i) - FitIntensity[i])
+            DsmErrors[i] += np.abs(calculateLineAverage(FitIntensity, Qvector, i) - FitIntensity[i])
 
     DsmErrors[0] = 3*DsmErrors[2]
     DsmErrors[1] = 2*DsmErrors[2]
@@ -373,15 +373,15 @@ def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSme
 
     return QWave, DesmearIntWave, DesmearEWave, NormalizedError
 
-def removeNaNsFromArray(wave):
-    """
-    Remove NaNs from a wave by replacing them with zero.
+# def removeNaNsFromArray(wave):
+#     """
+#     Remove NaNs from a wave by replacing them with zero.
 
-    Parameters:
-    wave : array-like
-        The wave to process.
-    """
-    wave[np.isnan(wave)] = 0
+#     Parameters:
+#     wave : array-like
+#         The wave to process.
+#     """
+#     wave[np.isnan(wave)] = 0
 
 def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIter = None, ExtrapMethod='flat',ExtrapQstart=None):
     """
@@ -427,24 +427,24 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
 
     while True:
         tmpWork_Qvec, tmpWork_Int, tmpWork_Error, DesmNormalizedError = oneDesmearIteration(slitLength,tmpWork_Qvec, tmpWork_Int, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
-        #if ExtensionFailed:
-        #    return None, None, None, None, None#
-
         absNormalizedError = np.abs(DesmNormalizedError)
-        #tmpabsNormalizedError = np.copy(absNormalizedError)
-        #tmpabsNormalizedError = removeNaNsFromArray(tmpabsNormalizedError)
         endme = np.average(absNormalizedError)
-        difff = 1 - oldendme / endme
+        #this is difference in convergence between iterations
+        difff = 1 - (oldendme / endme)
         oldendme = endme
         NumIterations += 1
-
-        if not (endme > DesmearAutoTargChisq and abs(difff) > 0.01 and NumIterations < 50):
+        #Conditions under which we will end 
+        if (endme < DesmearAutoTargChisq or abs(difff) < 0.02 or NumIterations > 20):
+            # print("Convergence reached")
+            # print("Number of iterations (>20): ", NumIterations)
+            # print("Final average error (<0.5): ", endme)
+            # print("Final convergence (<0.02): ", abs(difff))
             break
 
     DSM_Int = np.copy(tmpWork_Int)
     DSM_Qvec = np.copy(tmpWork_Qvec)
     DSM_Error = np.abs(tmpWork_Error)  # Remove negative values
     DSM_dQ = np.copy(tmpWork_dQ)
-    print(NumIterations)
+    #print(NumIterations)
     return DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ
 
