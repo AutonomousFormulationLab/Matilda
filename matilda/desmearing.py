@@ -81,9 +81,10 @@ def extendData(Q_vct, Int_wave, Err_wave, slitLength, Qstart, SelectedFunction):
         except RuntimeError:
             ProblemWithFit = "Linear fit function did not converge properly, change function or Q range"
     
-    elif SelectedFunction == "power law":
+    elif SelectedFunction == "Power law":
+        initial_guess = [np.min(Int_wave),(Int_wave[FitFrom]-np.min(Int_wave))/(Q_vct[FitFrom]**(-3.5))]
         try:
-            popt, _ = curve_fit(power_law_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths])
+            popt, _ = curve_fit(power_law_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths],p0=initial_guess)
             for i in range(1, NumNewPoints + 1):
                 Q_vct[DataLengths + i] = Q_vct[DataLengths] + (ExtendByQ) * (i / NumNewPoints)
                 Int_wave[DataLengths + i] = popt[0] + popt[1] * Q_vct[DataLengths + i]**popt[2]
@@ -91,8 +92,9 @@ def extendData(Q_vct, Int_wave, Err_wave, slitLength, Qstart, SelectedFunction):
             ProblemWithFit = "Power law fit function did not converge properly, change function or Q range"
     
     elif SelectedFunction == "Porod":
+        initial_guess = [np.min(Int_wave),(Int_wave[FitFrom]-np.min(Int_wave))/(Q_vct[FitFrom]**(-3.5))]
         try:
-            popt, _ = curve_fit(porod_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths])
+            popt, _ = curve_fit(porod_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths],p0=initial_guess)
             for i in range(1, NumNewPoints + 1):
                 Q_vct[DataLengths + i] = Q_vct[DataLengths] + (ExtendByQ) * (i / NumNewPoints)
                 Int_wave[DataLengths + i] = popt[0] + popt[1] / Q_vct[DataLengths + i]**4
@@ -100,8 +102,9 @@ def extendData(Q_vct, Int_wave, Err_wave, slitLength, Qstart, SelectedFunction):
             ProblemWithFit = "Porod fit function did not converge properly, change function or Q range"
     
     elif SelectedFunction == "PowerLaw w flat":
+        initial_guess = [np.min(Int_wave),(Int_wave[FitFrom]-np.min(Int_wave))/(Q_vct[FitFrom]**(-3.5)), -3.5]
         try:
-            popt, _ = curve_fit(power_law_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths])
+            popt, _ = curve_fit(power_law_fnct, Q_vct[FitFrom:DataLengths], Int_wave[FitFrom:DataLengths], sigma=Err_wave[FitFrom:DataLengths],p0=initial_guess)
             for i in range(1, NumNewPoints + 1):
                 Q_vct[DataLengths + i] = Q_vct[DataLengths] + (ExtendByQ) * (i / NumNewPoints)
                 Int_wave[DataLengths + i] = popt[0] + popt[1] * Q_vct[DataLengths + i]**popt[2]
@@ -296,7 +299,7 @@ def smooth_errors(errors, window_len=3):
     return smoothed
 
 
-def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError):
+def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError,ExtrapMethod,ExtrapQstart):
     """
     Perform one iteration of the desmearing process.
 
@@ -319,10 +322,16 @@ def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSme
     """
     # Retrieve parameters from a hypothetical settings object
     # in Igor GUI system these are global poarameters. 
-    BackgroundFunction = "flat"  # There are four choises of extension functions. Typically we use this one.
+    BackgroundFunction = ExtrapMethod  # There are four choises of extension functions. 
+    # 'flat', 'Power law', 'Porod', 'PowerLaw w flat'.
+    if BackgroundFunction is None:
+       BackgroundFunction = 'flat'
     #NumberOfIterations = 0  # Placeholder
     numOfPoints = len(DesmearIntWave)
-    BckgStartQ = QWave[-1] / 1.5
+    if ExtrapQstart is not None:
+        BckgStartQ = ExtrapQstart
+    else:
+        BckgStartQ = QWave[-1] / 1.5
 
     if BckgStartQ > QWave[-1] / 1.5:
         BckgStartQ = QWave[-1] / 1.5
@@ -425,9 +434,11 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
     oldendme = 0
     DesmearAutoTargChisq = 0.5
     NumIterations = 0
+    if MaxNumIter is None:
+        MaxNumIter = 20
 
     while True:
-        tmpWork_Qvec, tmpWork_Int, tmpWork_Error, DesmNormalizedError = oneDesmearIteration(slitLength,tmpWork_Qvec, tmpWork_Int, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
+        tmpWork_Qvec, tmpWork_Int, tmpWork_Error, DesmNormalizedError = oneDesmearIteration(slitLength,tmpWork_Qvec, tmpWork_Int, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError, ExtrapMethod,ExtrapQstart)
         absNormalizedError = np.abs(DesmNormalizedError)
         endme = np.average(absNormalizedError)
         #this is difference in convergence between iterations
@@ -435,9 +446,9 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
         oldendme = endme
         NumIterations += 1
         #Conditions under which we will end 
-        if (endme < DesmearAutoTargChisq or abs(difff) < 0.02 or NumIterations > 20):
+        if (endme < DesmearAutoTargChisq or abs(difff) < 0.02 or NumIterations > MaxNumIter):
             # print("Convergence reached")
-            # print("Number of iterations (>20): ", NumIterations)
+            # print("Number of iterations (>", MaxNumIter,"): ", NumIterations)
             # print("Final average error (<0.5): ", endme)
             # print("Final convergence (<0.02): ", abs(difff))
             break
