@@ -35,7 +35,7 @@ import os
 from convertUSAXS import rebinData
 from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
-from desmearing import IN3_DesmearData
+from desmearing import desmearData
 
 
 
@@ -87,14 +87,15 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
                 SMR_Error =Sample["CalibratedData"]["SMR_Error"]
                 SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
                 SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
-                DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ = IN3_DesmearData(slitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
+                DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ = desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=slitLength)
                 desmearedData=list()
                 desmearedData={
                      "Intensity":DSM_Int,
                      "Q":DSM_Qvec,
                      "Error":DSM_Error,
                      "dQ":DSM_dQ,
-                }
+                     "units":"[cm2/cm3]",
+                     }
                 Sample["CalibratedData"].update(desmearedData)
                 #save_dict_to_hdf5(Sample, location, hdf_file)
                 #print("Appended new data to 'entry/displayData'.")

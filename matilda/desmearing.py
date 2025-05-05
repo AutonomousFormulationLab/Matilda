@@ -2,13 +2,16 @@
     #converted desmearing code from Igor Pro, untested
     This routine will calculate desmeard data using the Lake method and used by USAXS instrument during automatic data reduction 
 
-    final routine is : IN3_DesmearData(SlitLength, DesmearNumberOfIterations, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ)
+    final routine is : desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=SlitLength, MaxNumIter = None, ExtrapMethod='flat',ExtrapQstart=None)
     Returns:
-        tuple
-            Desmeared intensities, Q vector, errors, and dQ values.    
+            Desmeared: Q, Intensity, Errors, dQ arrays
+              
     
-    slit length is in q units [1/A]
-    Assumes Qmax is generally larger than slit length, typically SL=0.03 and Qmax=0.3
+    slit length is in q units [1/A] and must be provided
+    MaxNumIter = None - if not provided, set to 50 and also using automatic method
+    ExtrapMethod='flat', other options are "Porod", "Power law" and "Power law with flat"
+    ExtrapQstart=None - if nto present, set to Qmax/1.5 
+    Assumes Qmax is signiifcantly larger than slit length, typically SL=0.03 and Qmax=0.3
     The code is in IN3_Calculations with functions with the same name
     
 '''
@@ -19,7 +22,7 @@ from scipy.integrate import simpson
 
 
 
-def IN3_ExtendData(Int_wave, Q_vct, Err_wave, slitLength, Qstart, SelectedFunction):
+def extendData(Q_vct, Int_wave, Err_wave, slitLength, Qstart, SelectedFunction):
     if not isinstance(slitLength, (int, float)):
         raise ValueError("Slit length error")
     if slitLength < 0.0001 or slitLength > 1:
@@ -122,10 +125,9 @@ def IN3_ExtendData(Int_wave, Q_vct, Err_wave, slitLength, Qstart, SelectedFuncti
             Int_wave[DataLengths + i] = AveInt
         ExtensionFailed = False
     
-    return ExtensionFailed
+    return Q_vct, Int_wave, Err_wave, ExtensionFailed
 
-
-def IN3_SmearDataFastFunc(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear, SlitLength):
+def smearDataOverSlit(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear):
     """
     Smear data fast function.
 
@@ -133,15 +135,13 @@ def IN3_SmearDataFastFunc(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to
     Q_vec_sm2 : float
         The squared value of the Q vector to be smeared.
     Smear_Q : array-like
-        The Q values for smearing.
+        The Q values for smearing. This is the slit Q values. 
     Smear_Q2 : array-like
         The squared Q values for smearing.
     tempQ_vec_sm : array-like
         The temporary Q vector for smearing.
     tempInt_to_smear : array-like
         The temporary intensities to smear.
-    SlitLength : float
-        The length of the slit.
 
     Returns:
     float
@@ -159,7 +159,7 @@ def IN3_SmearDataFastFunc(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to
 
     return integrated_intensity
 
-def IN3_SmearData(Int_to_smear, Q_vec_sm, slitLength):
+def smearIntensityArray(Int_to_smear, Q_vec_sm, slitLength):
     """
     Smear data function.
 
@@ -204,7 +204,7 @@ def IN3_SmearData(Int_to_smear, Q_vec_sm, slitLength):
     Smear_Q2 = Smear_Q ** 2
     
     # Calculate smeared intensities using the fast function
-    Smeared_int = np.array([IN3_SmearDataFastFunc(Q_vec_sm2[i], Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear, slitLength) for i in range(len(Q_vec_sm2))])
+    Smeared_int = np.array([smearDataOverSlit(Q_vec_sm2[i], Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear) for i in range(len(Q_vec_sm2))])
     
     # Normalize the smeared intensities
     Smeared_int *= 1 / slitLength
@@ -241,7 +241,7 @@ def IN3_CalculateLineAverage(WaveY, WaveX, ivalue):
         return mval * WaveX[ivalue] + cval
     return 0
 
-def IN3_GetErrors(SmErrors, SmIntensity, FitIntensity, Qvector):
+def calculateErrors(SmErrors, SmIntensity, FitIntensity, Qvector):
     """
     Calculate errors using Pete's formulas.
 
@@ -295,7 +295,7 @@ def smooth_errors(errors, window_len=3):
     return smoothed
 
 
-def IN3_OneDesmearIteration(SlitLength, DesmearIntWave, DesmearQWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError):
+def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSmearedInt, origSmearedErr, NormalizedError):
     """
     Perform one iteration of the desmearing process.
 
@@ -314,42 +314,43 @@ def IN3_OneDesmearIteration(SlitLength, DesmearIntWave, DesmearQWave, DesmearEWa
         The normalized error array.
 
     Returns:
-    int
-        0 if successful, 1 if extension failed.
+    DesmearQWave, DesmearIntWave, DesmearEWave, NormalizedError
     """
     # Retrieve parameters from a hypothetical settings object
     # in Igor GUI system these are global poarameters. 
     BackgroundFunction = "flat"  # There are four choises of extension functions. Typically we use this one.
     #NumberOfIterations = 0  # Placeholder
     numOfPoints = len(DesmearIntWave)
-    BckgStartQ = DesmearQWave[-1] / 1.5
+    BckgStartQ = QWave[-1] / 1.5
 
-    if BckgStartQ > DesmearQWave[-1] / 1.5:
-        BckgStartQ = DesmearQWave[-1] / 1.5
+    if BckgStartQ > QWave[-1] / 1.5:
+        BckgStartQ = QWave[-1] / 1.5
 
     SmFitIntensity = np.copy(DesmearIntWave)
-    OrigIntToSmear = np.copy(origSmearedInt)
+    SmQWave = np.copy(QWave)
     SmErrors = np.copy(origSmearedErr)
-
-    ExtensionFailed = IN3_ExtendData(DesmearIntWave, DesmearQWave, SmErrors, SlitLength, BckgStartQ, BackgroundFunction)
+    #here we extend the data to be at least slit length longer. 
+    # it shoudl never fail as if it does with complex functions, inside will simply do flat extension.
+    SmQWave, SmFitIntensity, SmErrors, ExtensionFailed = extendData(QWave,DesmearIntWave,SmErrors, SlitLength, BckgStartQ, BackgroundFunction)
     if ExtensionFailed:
         return 1
-
+    #this is now smeared version of Intensity
     if SlitLength > 0:
-        SmFitIntensity = IN3_SmearData(DesmearIntWave, DesmearQWave, SlitLength)
+        SmFitIntensity = smearIntensityArray(SmFitIntensity, SmQWave, SlitLength)
 
     # Resize arrays back to original length
     SmFitIntensity = SmFitIntensity[:numOfPoints]
     DesmearIntWave = DesmearIntWave[:numOfPoints]
-    DesmearQWave = DesmearQWave[:numOfPoints]
+    QWave = SmQWave[:numOfPoints]
+    SmErrors = SmErrors[:numOfPoints]
     NormalizedError = NormalizedError[:numOfPoints]
 
     # Calculate normalized error
     NormalizedError = (origSmearedInt - SmFitIntensity) / SmErrors
 
     # Fast and slow convergence
-    FastFitIntensity = DesmearIntWave * (OrigIntToSmear / SmFitIntensity)
-    SlowFitIntensity = DesmearIntWave + (OrigIntToSmear - SmFitIntensity)
+    FastFitIntensity = DesmearIntWave * (origSmearedInt / SmFitIntensity)
+    #SlowFitIntensity = DesmearIntWave + (origSmearedInt - SmFitIntensity)
 
     # Update DesmearIntWave based on normalized error
     for i in range(len(DesmearIntWave)):
@@ -361,18 +362,18 @@ def IN3_OneDesmearIteration(SlitLength, DesmearIntWave, DesmearQWave, DesmearEWa
     #NumberOfIterations += 1
 
     # Remove extremes from normalized error
-    min_loc = np.argmin(NormalizedError)
-    max_loc = np.argmax(NormalizedError)
-    NormalizedError[min_loc] = np.nan
-    NormalizedError[max_loc] = np.nan
+    #min_loc = np.argmin(NormalizedError)
+    #max_loc = np.argmax(NormalizedError)
+    #NormalizedError[min_loc] = np.nan
+    #NormalizedError[max_loc] = np.nan
 
     # Calculate errors
     DesmearEWave.fill(0)
-    IN3_GetErrors(origSmearedErr, origSmearedInt, DesmearIntWave, DesmearQWave)
+    DesmearEWave = calculateErrors(origSmearedErr, origSmearedInt, DesmearIntWave, QWave)
 
-    return 0
+    return QWave, DesmearIntWave, DesmearEWave, NormalizedError
 
-def IN2G_RemNaNsFromAWave(wave):
+def removeNaNsFromArray(wave):
     """
     Remove NaNs from a wave by replacing them with zero.
 
@@ -382,17 +383,15 @@ def IN2G_RemNaNsFromAWave(wave):
     """
     wave[np.isnan(wave)] = 0
 
-
-
-def IN3_DesmearData(SlitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
+def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIter = None, ExtrapMethod='flat',ExtrapQstart=None):
     """
     Perform the desmearing process on the provided data.
 
     Parameters:
     SlitLength : float
         The length of the slit. in Q units, [1/A] most likely
-    DesmearNumberOfIterations : int
-        The number of iterations for the desmearing process.Typically 5-10
+    MaxNumIter : int
+        The number of iterations for the desmearing process.Typically 5-10, if not provided usign automatic method and max number set to 50. 
     SMR_Int : array-like
         The smeared intensities.
     SMR_Error : array-like
@@ -401,13 +400,17 @@ def IN3_DesmearData(SlitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
         The Q vector for the smeared data.
     SMR_dQ : array-like
         The dQ values for the smeared data.
+    ExtrapMethod: 
+        "flat", "Power law", "Power law with flat", "Porod"
+    ExtrapQstart
+        Where to start extrapolation, if not provided set to Qmax/1.5
 
     Returns:
     tuple
-        Desmeared intensities, Q vector, errors, and dQ values.
+        DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ
     """
-    if SMR_Int is None or len(SMR_Int) == 0:
-        return None, None, None, None
+    if SMR_Int is None or len(SMR_Int) == 0 or slitLength is None:
+        return None, None, None, None, None
 
     tmpWork_Int = np.copy(SMR_Int)
     tmpWork_Error = np.copy(SMR_Error)
@@ -423,14 +426,14 @@ def IN3_DesmearData(SlitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
     NumIterations = 0
 
     while True:
-        ExtensionFailed = IN3_OneDesmearIteration(SlitLength,tmpWork_Int, tmpWork_Qvec, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
-        if ExtensionFailed:
-            return None, None, None, None
+        tmpWork_Qvec, tmpWork_Int, tmpWork_Error, DesmNormalizedError = oneDesmearIteration(slitLength,tmpWork_Qvec, tmpWork_Int, tmpWork_Error, SMR_Int, SMR_Error, DesmNormalizedError)
+        #if ExtensionFailed:
+        #    return None, None, None, None, None#
 
         absNormalizedError = np.abs(DesmNormalizedError)
-        tmpabsNormalizedError = np.copy(absNormalizedError)
-        IN2G_RemNaNsFromAWave(tmpabsNormalizedError)
-        endme = np.sum(tmpabsNormalizedError) / len(absNormalizedError)
+        #tmpabsNormalizedError = np.copy(absNormalizedError)
+        #tmpabsNormalizedError = removeNaNsFromArray(tmpabsNormalizedError)
+        endme = np.average(absNormalizedError)
         difff = 1 - oldendme / endme
         oldendme = endme
         NumIterations += 1
@@ -443,5 +446,5 @@ def IN3_DesmearData(SlitLength, SMR_Int, SMR_Error, SMR_Qvec, SMR_dQ):
     DSM_Error = np.abs(tmpWork_Error)  # Remove negative values
     DSM_dQ = np.copy(tmpWork_dQ)
     print(NumIterations)
-    return DSM_Int, DSM_Qvec, DSM_Error, DSM_dQ
+    return DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ
 
