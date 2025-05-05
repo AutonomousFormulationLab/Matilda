@@ -1,5 +1,5 @@
 '''
-    #converted desmearing code from Igor Pro, untested
+    Converted desmearing code from Igor Pro
     This routine will calculate desmeard data using the Lake method and used by USAXS instrument during automatic data reduction 
 
     final routine is : desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=SlitLength, MaxNumIter = None, ExtrapMethod='flat',ExtrapQstart=None)
@@ -8,11 +8,12 @@
               
     
     slit length is in q units [1/A] and must be provided
-    MaxNumIter = None - if not provided, set to 50 and also using automatic method
+    MaxNumIter = None - if not provided, set to 20 and also using automatic method
     ExtrapMethod='flat', other options are "Porod", "Power law" and "Power law with flat"
-    ExtrapQstart=None - if nto present, set to Qmax/1.5 
-    Assumes Qmax is signiifcantly larger than slit length, typically SL=0.03 and Qmax=0.3
-    The code is in IN3_Calculations with functions with the same name
+    Note that if extrapolation with more complciated functions fails, flat is automatically applied. Untested some of the extrapolations. 
+    ExtrapQstart=None - if not present, set to Qmax/1.5 
+    Assumes Qmax is significantly larger than slit length, typically Sl=0.03 and Qmax=0.3
+    Igor code is in IN3_Calculations with functions with similar names.
     
 '''
 import numpy as np
@@ -26,7 +27,7 @@ def extendData(Q_vct, Int_wave, Err_wave, slitLength, Qstart, SelectedFunction):
     if not isinstance(slitLength, (int, float)):
         raise ValueError("Slit length error")
     if slitLength < 0.0001 or slitLength > 1:
-        print("Weird value for Slit length, please check")
+        raise ValueError("Weird value for Slit length, please check")
     
     # Check for NaNs or INFs in Int_wave
     if np.isnan(Int_wave).any() or np.isinf(Int_wave).any():
