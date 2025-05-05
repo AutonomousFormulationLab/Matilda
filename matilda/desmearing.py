@@ -19,7 +19,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-from scipy.integrate import simpson
+from scipy.integrate import simpson, trapezoid
 
 
 
@@ -155,11 +155,14 @@ def smearDataOverSlit(Q_vec_sm2, Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_sme
     InterSmear_Q = np.sqrt(Q_vec_sm2 + Smear_Q2)
 
     # Interpolate the intensity values
-    interp_func = interp1d(tempQ_vec_sm, tempInt_to_smear, kind='linear', fill_value="extrapolate")
-    Smear_Int = interp_func(InterSmear_Q)
+    #np.interp(xnew, x, y)
+    Smear_Int = np.interp(InterSmear_Q, tempQ_vec_sm, tempInt_to_smear)
+    # interp_func = interp1d(tempQ_vec_sm, tempInt_to_smear, kind='linear', fill_value="extrapolate")
+    # Smear_Int = interp_func(InterSmear_Q)
 
     # Integrate the intensity over the slit
-    integrated_intensity = simpson(Smear_Int, Smear_Q)
+    #integrated_intensity = simpson(Smear_Int, Smear_Q)
+    integrated_intensity = trapezoid(Smear_Int, Smear_Q)
 
     return integrated_intensity
 
@@ -201,7 +204,7 @@ def smearIntensityArray(Int_to_smear, Q_vec_sm, slitLength):
     DataLengths = len(Q_vec_sm)
     
     # Create distribution of points in Smear_Q
-    Smear_Q = 2 * slitLength * (Q_vec_sm - Q_vec_sm[0]) / (Q_vec_sm[DataLengths - 1] - Q_vec_sm[0])
+    Smear_Q = slitLength * (Q_vec_sm - Q_vec_sm[0]) / (Q_vec_sm[DataLengths - 1] - Q_vec_sm[0])
     
     # Calculate squared values
     Q_vec_sm2 = Q_vec_sm ** 2
@@ -431,8 +434,6 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
     tmpWork_Qvec = np.copy(SMR_Qvec)
     tmpWork_dQ = np.copy(SMR_dQ)
  
-    #DesmNormalizedError = np.copy(SMR_Int)
-    #absNormalizedError = np.copy(SMR_Int)
     DesmNormalizedError = np.zeros(len(SMR_Int))
     absNormalizedError = np.zeros(len(SMR_Int))
     #numOfPoints = len(SMR_Int)
@@ -453,10 +454,10 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
         NumIterations += 1
         #Conditions under which we will end 
         if (endme < DesmearAutoTargChisq or abs(difff) < 0.02 or NumIterations > MaxNumIter):
-            print("Convergence reached")
-            print("Number of iterations (>", MaxNumIter,"): ", NumIterations)
-            print("Final average error (<0.5): ", endme)
-            print("Final convergence (<0.02): ", abs(difff))
+            # print("Convergence reached")
+            # print("Number of iterations (>", MaxNumIter,"): ", NumIterations)
+            # print("Final average error (<0.5): ", endme)
+            # print("Final convergence (<0.02): ", abs(difff))
             break
 
     DSM_Int = np.copy(tmpWork_Int)
