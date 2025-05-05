@@ -87,7 +87,7 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
                 SMR_Error =Sample["CalibratedData"]["SMR_Error"]
                 SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
                 SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
-                DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ = desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=slitLength,ExtrapMethod='PowerLaw w flat',ExtrapQstart=0.1)
+                DSM_Qvec, DSM_Int, DSM_Error, DSM_dQ = desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=slitLength,ExtrapMethod='PowerLaw w flat',ExtrapQstart=0.1, MaxNumIter = 20)
                 desmearedData=list()
                 desmearedData={
                      "Intensity":DSM_Int,
@@ -185,7 +185,7 @@ def calibrateAndSubtractFlyscan(Sample):
     #apply calibration
     SMR_Int =  SMR_Int / (Kfactor*MSAXSCorrection) 
     SMR_Error = SMR_Error/ (Kfactor*MSAXSCorrection) 
-
+    SMR_Error = SMR_Error * PeakToPeakTransmission  #this is Igor correction from 2014 which fixes issues with high absowrption well scattering samples. 
     return {"SMR_Qvec":SMR_Qvec,
             "SMR_Int":SMR_Int,
             "SMR_Error":SMR_Error,
@@ -274,7 +274,7 @@ def calculatePDError(Sample, isBlank=False):
     SigmaRwave=np.sqrt((A**2 * SigmaMonitor**4)+(SigmaPDwDC**2 * ScaledMonitor**4)+((A**2 + SigmaPDwDC**2) * ScaledMonitor**2 * SigmaMonitor**2))
     SigmaRwave=SigmaRwave/(ScaledMonitor*(ScaledMonitor**2-SigmaMonitor**2))
     SigmaRwave=SigmaRwave * I0AmpGain			#fix for use of I0 gain here, the numbers were too low due to scaling of PD by I0AmpGain
-    Error=SigmaRwave/4		#2025-04 these values are simply too large on new APS-U USAXS instrument
+    Error=SigmaRwave/2		                    #2025-04 these values are simply too large on new APS-U USAXS instrument
     result = {"Error":Error}
     return result
 

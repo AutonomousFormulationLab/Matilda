@@ -196,7 +196,7 @@ def smearIntensityArray(Int_to_smear, Q_vec_sm, slitLength):
     
     # Create Smear_Q and Smear_Int arrays
     Smear_Q = np.zeros(oldNumPnts)
-    Smear_Int = np.zeros(oldNumPnts)
+    Smeared_int = np.zeros(oldNumPnts)
     
     DataLengths = len(Q_vec_sm)
     
@@ -209,7 +209,11 @@ def smearIntensityArray(Int_to_smear, Q_vec_sm, slitLength):
     
     # Calculate smeared intensities using the fast function
     Smeared_int = np.array([smearDataOverSlit(Q_vec_sm2[i], Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear) for i in range(len(Q_vec_sm2))])
-    
+    # Using a loop for better readability
+    # for i in range(DataLengths):
+    #     # Calculate the smeared intensity for each point
+    #     Smeared_int[i] = smearDataOverSlit(Q_vec_sm2[i], Smear_Q, Smear_Q2, tempQ_vec_sm, tempInt_to_smear)
+
     # Normalize the smeared intensities
     Smeared_int *= 1 / slitLength
     
@@ -356,7 +360,7 @@ def oneDesmearIteration(SlitLength, QWave, DesmearIntWave, DesmearEWave, origSme
     NormalizedError = NormalizedError[:numOfPoints]
 
     # Calculate normalized error
-    NormalizedError = (origSmearedInt - SmFitIntensity) / SmErrors
+    NormalizedError = (origSmearedInt - SmFitIntensity) / origSmearedErr
 
     # Fast and slow convergence
     FastFitIntensity = DesmearIntWave * (origSmearedInt / SmFitIntensity)
@@ -427,9 +431,11 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
     tmpWork_Qvec = np.copy(SMR_Qvec)
     tmpWork_dQ = np.copy(SMR_dQ)
  
-    DesmNormalizedError = np.copy(SMR_Int)
-    absNormalizedError = np.copy(SMR_Int)
-    numOfPoints = len(SMR_Int)
+    #DesmNormalizedError = np.copy(SMR_Int)
+    #absNormalizedError = np.copy(SMR_Int)
+    DesmNormalizedError = np.zeros(len(SMR_Int))
+    absNormalizedError = np.zeros(len(SMR_Int))
+    #numOfPoints = len(SMR_Int)
     endme = 0
     oldendme = 0
     DesmearAutoTargChisq = 0.5
@@ -447,10 +453,10 @@ def desmearData(SMR_Qvec, SMR_Int, SMR_Error, SMR_dQ, slitLength=None, MaxNumIte
         NumIterations += 1
         #Conditions under which we will end 
         if (endme < DesmearAutoTargChisq or abs(difff) < 0.02 or NumIterations > MaxNumIter):
-            # print("Convergence reached")
-            # print("Number of iterations (>", MaxNumIter,"): ", NumIterations)
-            # print("Final average error (<0.5): ", endme)
-            # print("Final convergence (<0.02): ", abs(difff))
+            print("Convergence reached")
+            print("Number of iterations (>", MaxNumIter,"): ", NumIterations)
+            print("Final average error (<0.5): ", endme)
+            print("Final convergence (<0.02): ", abs(difff))
             break
 
     DSM_Int = np.copy(tmpWork_Int)
