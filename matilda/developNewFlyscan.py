@@ -208,14 +208,14 @@ def getBlankFlyscan(blankPath, blankFilename):
             # Check if the group 'location' exists, if yes, bail out as this is all needed. 
             # if deleteExisting:
             #     # Delete the group
-            #     del hdf_file[location]
-            #     print("Deleted existing group 'entry/blankData'.")
+            #del hdf_file[location]
+            #print("Deleted existing group 'entry/blankData'.")
 
             if location in hdf_file:
                 # exists, so lets reuse the data from the file
                 Blank = dict()
                 Blank = load_dict_from_hdf5(hdf_file, location)
-                print("Used existing data")
+                print("Used existing Blank data")
                 return Blank
             else:
                 Blank = dict()
@@ -238,12 +238,12 @@ def getBlankFlyscan(blankPath, blankFilename):
                                                         Blank["BlankData"]["Error"], 
                                                         Blank["RawData"]["TimePerPoint"],
                                                         replaceNans=True )) 
-                # we need to return just the BlandData part 
+                # we need to return just the BlankData part 
                 BlankData=dict()
                 BlankData=Blank["BlankData"]
                 # Create the group and dataset for the new data inside the hdf5 file for future use. 
-                #save_dict_to_hdf5(Blank, location, hdf_file)
-                #print("Appended new data to 'entry/blankData'.")
+                save_dict_to_hdf5(BlankData, location, hdf_file)
+                print("Appended new Blank data to 'entry/blankData'.")
                 return BlankData
 
 
