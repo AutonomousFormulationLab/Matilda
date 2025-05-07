@@ -197,19 +197,19 @@ def calibrateAndSubtractFlyscan(Sample):
             "units":"[cm2/cm3]"
             }
 
-def getBlankFlyscan(blankPath, blankFilename):
-      # need to get proper info from tiled on last collected Blank
-      # for now fake by uusing defalut from test data
-      # Then either get data from file, if exist or reduce, append, and return. 
-      # We need the BL_QRS and calibration data.
+def getBlankFlyscan(blankPath, blankFilename, deleteExisting=False):
+      # will reduce the blank linked as input into Igor BL_R_Int 
+      # after reducing this first time, data are saved in Nexus file for subsequent use. 
+      # We get the BL_QRS and calibration data as result.
     # Open the HDF5 file in read/write mode
     location = 'entry/blankData/'
     with h5py.File(blankPath+'/'+blankFilename, 'r+') as hdf_file:
-            # Check if the group 'location' exists, if yes, bail out as this is all needed. 
-            # if deleteExisting:
-            #     # Delete the group
-            #del hdf_file[location]
-            #print("Deleted existing group 'entry/blankData'.")
+            # Check if the group 'location' exists, if yes, either delete if asked for or use. 
+            if deleteExisting:
+                if location in hdf_file:
+                    # Delete the group is exists and requested
+                    del hdf_file[location]
+                    print("Deleted existing group 'entry/blankData'.")
 
             if location in hdf_file:
                 # exists, so lets reuse the data from the file
