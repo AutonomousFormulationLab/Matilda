@@ -33,7 +33,7 @@ import pprint as pp
 from supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
 from convertUSAXS import rebinData
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5, saveNXcanSAS
+from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5, saveNXcanSAS, readNXcanSAS
 from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
 from desmearing import desmearData
 
@@ -297,28 +297,45 @@ def test_matildaLocal():
     blankFilename="HeaterBlank_0060.h5"
     Sample = processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)    
     
+    # Specify the path and filename
+    file_path = 'C:/Users/ilavsky/Desktop/TestNexus.hdf'  # Replace with your actual file path
+    # Check if the file exists before attempting to delete it
+    if os.path.exists(file_path):
+        try:
+            # Delete the file
+            os.remove(file_path)
+            print(f"File '{file_path}' has been deleted successfully.")
+        except Exception as e:
+            print(f"An error occurred while trying to delete the file: {e}")
+    else:
+        print(f"The file '{file_path}' does not exist.")
+    #removed file
     saveNXcanSAS(Sample,"C:/Users/ilavsky/Desktop", "TestNexus.hdf")
-    Q = Sample["reducedData"]["Q"]
-    UPD = Sample["reducedData"]["Intensity"]
-    Error = Sample["reducedData"]["Error"]
-    plt.figure(figsize=(6, 12))
-    plt.plot(Q, UPD, linestyle='-')  # You can customize the marker and linestyle
-    #plt.plot(Q, Intensity, linestyle='-')  # You can customize the marker and linestyle
-    plt.title('Plot of Intensity vs. Q')
-    plt.xlabel('log(Q) [1/A]')
-    plt.ylabel('Intensity')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.grid(True)
-    plt.show() 
-    SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"] 
-    SMR_Int =Sample["CalibratedData"]["SMR_Int"] 
-    #SMR_Error =Sample["CalibratedData"]["SMR_Error"] 
+
+    Data = readNXcanSAS("C:/Users/ilavsky/Desktop", "TestNexus.hdf")
+    Sample = {}
+    Sample['CalibratedData']=Data
+    # Q = Sample["reducedData"]["Q"]
+    # UPD = Sample["reducedData"]["Intensity"]
+    # Error = Sample["reducedData"]["Error"]
+    # plt.figure(figsize=(6, 12))
+    # plt.plot(Q, UPD, linestyle='-')  # You can customize the marker and linestyle
+    # #plt.plot(Q, Intensity, linestyle='-')  # You can customize the marker and linestyle
+    # plt.title('Plot of Intensity vs. Q')
+    # plt.xlabel('log(Q) [1/A]')
+    # plt.ylabel('Intensity')
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.grid(True)
+    # plt.show() 
+    # SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"] 
+    # SMR_Int =Sample["CalibratedData"]["SMR_Int"] 
+    # #SMR_Error =Sample["CalibratedData"]["SMR_Error"] 
     DSM_Qvec =Sample["CalibratedData"]["Q"] 
     DSM_Int =Sample["CalibratedData"]["Intensity"] 
     #DSM_Error =Sample["CalibratedData"]["Error"] 
     plt.figure(figsize=(6, 12))
-    plt.plot(SMR_Qvec, SMR_Int, linestyle='-')  # You can customize the marker and linestyle
+    #plt.plot(SMR_Qvec, SMR_Int, linestyle='-')  # You can customize the marker and linestyle
     plt.plot(DSM_Qvec, DSM_Int, linestyle='-')  # You can customize the marker and linestyle
     plt.title('Plot of Intensity vs. Q')
     plt.xlabel('log(Q) [1/A]')

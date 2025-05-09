@@ -12,6 +12,92 @@ import numpy as np
 import six  #what is this for???
 import datetime
 
+def readNXcanSAS(path, filename):
+    '''
+    read data from NXcanSAS data in Nexus file. Ignore NXsas data and anything else
+    '''
+    with h5py.File(path+'/'+filename, 'r') as f:
+    # Read the "default" attribute from the root
+    # Start at the root
+        current_location = '/'
+        default_location = f[current_location].attrs.get('default')
+        if default_location is not None:
+            current_location = f"{current_location}/{default_location}".strip('/')
+            if current_location in f:
+                default_location = f[current_location].attrs.get('default')
+                if 'default' in f[current_location].attrs:
+                    current_location = f"{current_location}/{default_location}".strip('/')
+
+        #print(f"Data is located at: {current_location}")    
+        group_or_dataset = f[current_location]
+        # Retrieve and print the list of attributes
+        attributes = group_or_dataset.attrs
+        # print(f"Attributes at '{current_location}':")
+        # for attr_name, attr_value in attributes.items():
+        #     print(f"{attr_name}: {attr_value}")
+        
+        data_location= current_location+'/'+attributes['signal']
+        if data_location in f:
+            # Access the dataset at the specified location
+            dataset = f[data_location]
+            # Read the data into a NumPy array
+            intensity = dataset[()] 
+            # Retrieve and print the list of attributes
+            Int_attributes = dataset.attrs
+            units=Int_attributes['units']
+            Kfactor = Int_attributes["Kfactor"]
+            OmegaFactor = Int_attributes["OmegaFactor"]
+            BlankName = Int_attributes["BlankName"]
+            thickness = Int_attributes["thickness"]
+            label = Int_attributes["label"]
+
+        data_location= current_location+'/'+attributes['I_axes']
+        if data_location in f:
+            # Access the dataset at the specified location
+            dataset = f[data_location]
+            # Read the data into a NumPy array
+            Q = dataset[()] 
+            # Retrieve and print the list of attributes
+            Q_attributes = dataset.attrs
+            #for attr_name, attr_value in Q_attributes.items():
+            #    print(f"{attr_name}: {attr_value}")
+
+        data_location= current_location+'/'+Int_attributes['uncertainties']
+        if data_location in f:
+            # Access the dataset at the specified location
+            dataset = f[data_location]
+            # Read the data into a NumPy array
+            Error = dataset[()] 
+            # Retrieve and print the list of attributes
+            Error_attributes = dataset.attrs
+
+
+        data_location= current_location+'/'+Q_attributes['resolutions']
+        if data_location in f:
+            # Access the dataset at the specified location
+            dataset = f[data_location]
+            # Read the data into a NumPy array
+            dQ = dataset[()] 
+            # Retrieve and print the list of attributes
+            dQ_attributes = dataset.attrs
+        Data = {
+            'Intensity':intensity,
+            'Q':Q,
+            'dQ':dQ,
+            'Error':Error,
+            'units':units,
+            'Int_attributes':Int_attributes,
+            'Q_attributes':Q_attributes,
+            'Error_Attributes':Error_attributes,
+            'dQ_Attributes':dQ_attributes,
+            "Kfactor":Kfactor,
+            "OmegaFactor":OmegaFactor,
+            "BlankName":BlankName,
+            "thickness":thickness,
+            'label':label,
+        }
+        return Data
+
 def saveNXcanSAS(Sample,path, filename):
     
     #read stuff from the data dictionary
@@ -66,6 +152,11 @@ def saveNXcanSAS(Sample,path, filename):
         ds.attrs['units'] = '1/cm'
         ds.attrs['uncertainties'] = 'Idev'
         ds.attrs['long_name'] = 'cm2/cm3'    # suggested X axis plot label
+        ds.attrs['Kfactor'] = Kfactor
+        ds.attrs['OmegaFactor'] = OmegaFactor
+        ds.attrs['BlankName'] = BlankName
+        ds.attrs['thickness'] = thickness
+        ds.attrs['label'] = label
 
         # X axis data
         ds = nxdata.create_dataset('Q', data=Q)
