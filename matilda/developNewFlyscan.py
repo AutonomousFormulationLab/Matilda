@@ -33,7 +33,7 @@ import pprint as pp
 from supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
 from convertUSAXS import rebinData
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5, saveNXcanSAS
 from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
 from desmearing import desmearData
 
@@ -296,6 +296,8 @@ def test_matildaLocal():
     blankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
     blankFilename="HeaterBlank_0060.h5"
     Sample = processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)    
+    
+    saveNXcanSAS(Sample,"C:/Users/ilavsky/Desktop", "TestNexus.hdf")
     Q = Sample["reducedData"]["Q"]
     UPD = Sample["reducedData"]["Intensity"]
     Error = Sample["reducedData"]["Error"]
