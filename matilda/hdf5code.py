@@ -17,18 +17,15 @@ def readNXcanSAS(path, filename):
     read data from NXcanSAS data in Nexus file. Ignore NXsas data and anything else
     '''
     with h5py.File(path+'/'+filename, 'r') as f:
-        # Read the "default" attribute from the root
-        # find the default NXentry 
-        #groupnx_entry = f[f.attrs["NXcanSAS"]]
-        #print(groupnx_entry)
-        # find the default NXdata 
-        #groupnx_data = groupnx_entry[groupnx_entry.attrs["default"]]
-        #print(groupnx_data)
         # Start at the root
         # Find the NXcanSAS entries 
-        rootgroup=f['/']
-        SASentries=  find_NXcanSAS_entries(rootgroup)
+        # rootgroup=f['/']
+        # SASentries=  find_NXcanSAS_entries(rootgroup)
+        required_attributes = {'canSAS_class': 'SASentry', 'NX_class': 'NXsubentry'}
+        required_items = {'definition': 'NXcanSAS'}
+        SASentries =  find_matching_groups(f, required_attributes, required_items)
         #print(f"Found {len(SASentries)} NXcanSAS entries in the file:")
+        #print(SASentries)
         FirstEntry = SASentries[0] if SASentries else None
         if FirstEntry is None:
             print("No NXcanSAS entries found in the file.")
@@ -299,30 +296,64 @@ def load_dict_from_hdf5(hdf_file, location):
     return recursively_load_dict_contents_from_group(hdf_file,location)
 
 
-def find_NXcanSAS_entries(group, path=''):
-    nxcanSAS_entries = []
+# def find_NXcanSAS_entries(group, path=''):
+#     nxcanSAS_entries = []
     
-    for name, item in group.items():
-        current_path = f"{path}/{name}" if path else name
+#     for name, item in group.items():
+#         current_path = f"{path}/{name}" if path else name
         
-        # Check if the item is a group
-        if isinstance(item, h5py.Group):
-            # Check if the group has the attribute "NXcanSAS"
-            if 'canSAS_class' in item.attrs:
-                if(item.attrs['canSAS_class'] == 'SASentry'):
-                    if "definition" in item:
-                        definition_data = item["definition"][()]
-                        # Check if "NXcanSAS" is in the definition data
-                        if isinstance(definition_data, bytes):
-                            definition_data = definition_data.decode('utf-8')
+#         # Check if the item is a group
+#         if isinstance(item, h5py.Group):
+#             # Check if the group has the attribute "NXcanSAS"
+#             if 'canSAS_class' in item.attrs:
+#                 if(item.attrs['canSAS_class'] == 'SASentry'):
+#                     if "definition" in item:
+#                         definition_data = item["definition"][()]
+#                         # Check if "NXcanSAS" is in the definition data
+#                         if isinstance(definition_data, bytes):
+#                             definition_data = definition_data.decode('utf-8')
                         
-                        print(f"Definition data: {definition_data}")
-                        if definition_data == 'NXcanSAS':
-                            print(f"Found NXcanSAS entry at: {current_path}")
-                            nxcanSAS_entries.append(current_path)
+#                         print(f"Definition data: {definition_data}")
+#                         if definition_data == 'NXcanSAS':
+#                             print(f"Found NXcanSAS entry at: {current_path}")
+#                             nxcanSAS_entries.append(current_path)
             
-            # Recursively search within the group
-            nxcanSAS_entries.extend(find_NXcanSAS_entries(item, current_path))
+#             # Recursively search within the group
+#             nxcanSAS_entries.extend(find_NXcanSAS_entries(item, current_path))
     
-    return nxcanSAS_entries
+#     return nxcanSAS_entries
 
+# this code can find any group which contains listed attributes:values and items:values (strings and variables)
+# this is general purpose code for HDF5 - Nexus evaluation
+def find_matching_groups(hdf5_file, required_attributes, required_items):
+    def check_group(name, obj):
+        if isinstance(obj, h5py.Group):
+            # Check attributes
+            attributes_match = all(
+                attr in obj.attrs and obj.attrs[attr] == value
+                for attr, value in required_attributes.items()
+            )
+            
+            # Check items
+            items_match = True
+            for item, expected_value in required_items.items():
+                if item in obj:
+                    actual_value = obj[item][()]
+                    # Decode byte strings to regular strings if necessary
+                    if isinstance(actual_value, bytes):
+                        actual_value = actual_value.decode('utf-8')
+                    if actual_value != expected_value:
+                        items_match = False
+                        break
+                else:
+                    items_match = False
+                    break
+            
+            if attributes_match and items_match:
+                matching_group_paths.append(name)
+
+    matching_group_paths = []
+
+    hdf5_file.visititems(check_group)
+
+    return matching_group_paths
