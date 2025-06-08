@@ -17,9 +17,24 @@ def readNXcanSAS(path, filename):
     read data from NXcanSAS data in Nexus file. Ignore NXsas data and anything else
     '''
     with h5py.File(path+'/'+filename, 'r') as f:
-    # Read the "default" attribute from the root
-    # Start at the root
-        current_location = '/'
+        # Read the "default" attribute from the root
+        # find the default NXentry 
+        #groupnx_entry = f[f.attrs["NXcanSAS"]]
+        #print(groupnx_entry)
+        # find the default NXdata 
+        #groupnx_data = groupnx_entry[groupnx_entry.attrs["default"]]
+        #print(groupnx_data)
+        # Start at the root
+        # Find the NXcanSAS entries 
+        rootgroup=f['/']
+        SASentries=  find_NXcanSAS_entries(rootgroup)
+        #print(f"Found {len(SASentries)} NXcanSAS entries in the file:")
+        FirstEntry = SASentries[0] if SASentries else None
+        if FirstEntry is None:
+            print("No NXcanSAS entries found in the file.")
+            return None
+
+        current_location = FirstEntry
         default_location = f[current_location].attrs.get('default')
         if default_location is not None:
             current_location = f"{current_location}/{default_location}".strip('/')
@@ -32,10 +47,10 @@ def readNXcanSAS(path, filename):
         group_or_dataset = f[current_location]
         # Retrieve and print the list of attributes
         attributes = group_or_dataset.attrs
-        # print(f"Attributes at '{current_location}':")
-        # for attr_name, attr_value in attributes.items():
-        #     print(f"{attr_name}: {attr_value}")
-        
+        print(f"Attributes at '{current_location}':")
+        for attr_name, attr_value in attributes.items():
+            print(f"{attr_name}: {attr_value}")
+
         data_location= current_location+'/'+attributes['signal']
         if data_location in f:
             # Access the dataset at the specified location
@@ -113,17 +128,18 @@ def saveNXcanSAS(Sample,path, filename):
     label = Sample["RawData"]["Filename"]
     timeStamp = Sample["RawData"]["metadata"]["timeStamp"]
     SampleName = Sample["RawData"]["sample"]["name"]
+    SampleName = SampleName.decode('utf-8')
 
     # SMR_Int =Sample["CalibratedData"]["SMR_Int"]
     # SMR_Error =Sample["CalibratedData"]["SMR_Error"]
     # SMR_Qvec =Sample["CalibratedData"]["SMR_Qvec"]
     # SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
 
-    # create the HDF5 NeXus file
+    # create the HDF5 NeXus file with same structure as our raw data files have...
     with h5py.File(path+'/'+filename, "w") as f:
         # point to the default data to be plotted
-        f.attrs['default']          = SampleName
-        # give the HDF5 root some more attributes
+        f.attrs['default']          = 'entry'   #our files have one entry input.
+        # these are hopefullyoptional and useful. 
         f.attrs['file_name']        = filename
         f.attrs['file_time']        = timeStamp 
         f.attrs['instrument']       = '12IDE USAXS'
@@ -132,15 +148,33 @@ def saveNXcanSAS(Sample,path, filename):
         f.attrs['HDF5_version']     = six.u(h5py.version.hdf5_version)
         f.attrs['h5py_version']     = six.u(h5py.version.version)
 
-        # create the NXentry group
-        nxentry = f.create_group(SampleName)
-        nxentry.attrs['NX_class'] = 'NXentry'
-        nxentry.attrs['canSAS_class'] = 'SASentry'
-        nxentry.attrs['default'] = 'sasdata'
-        nxentry.attrs['title'] = SampleName
+        # now create the NXentry group called entry if does not exist
+        if 'entry' not in f:
+            nxentry = f.create_group('entry')    
         
+        nxentry = f['entry']
+        nxentry.attrs['NX_class'] = 'NXentry'
+        nxentry.attrs['default']  = SampleName   #modify with the most reduced data.
+        #add definition as NXsas - this is location of raw AND reduced data
+        nxentry.create_dataset('definition', data='NXsas')
+        # other groups shoudl be here from RAW data, so ignore. 
+
+        # create the NXsubentry group for reduced data. 
+        newDataPath = "entry/"+SampleName
+        nxDataEntry = f.create_group(newDataPath)
+        nxDataEntry.attrs['NX_class'] = 'NXsubentry'
+        nxDataEntry.attrs['canSAS_class'] = 'SASentry'
+        nxDataEntry.attrs['default'] = 'sasdata'
+        nxDataEntry.attrs['title'] = SampleName
+        #add definition as NXcanSas
+        nxDataEntry.create_dataset('definition', data='NXcanSAS')
+        #add title as NXcanSas
+        nxDataEntry.create_dataset('title', data=SampleName)
+        #add run (compulsory)
+        nxDataEntry.create_dataset('run', data="run_identifier")
+
         # create the NXdata group for I(Q) for the avergaed data
-        nxdata = nxentry.create_group('sasdata')
+        nxdata = nxDataEntry.create_group('sasdata')
         nxdata.attrs['NX_class'] = 'NXdata'
         nxdata.attrs['canSAS_class'] = 'SASdata'
         nxdata.attrs['signal'] = 'I'      # Y axis of default plot
@@ -265,4 +299,30 @@ def load_dict_from_hdf5(hdf_file, location):
     return recursively_load_dict_contents_from_group(hdf_file,location)
 
 
+def find_NXcanSAS_entries(group, path=''):
+    nxcanSAS_entries = []
+    
+    for name, item in group.items():
+        current_path = f"{path}/{name}" if path else name
+        
+        # Check if the item is a group
+        if isinstance(item, h5py.Group):
+            # Check if the group has the attribute "NXcanSAS"
+            if 'canSAS_class' in item.attrs:
+                if(item.attrs['canSAS_class'] == 'SASentry'):
+                    if "definition" in item:
+                        definition_data = item["definition"][()]
+                        # Check if "NXcanSAS" is in the definition data
+                        if isinstance(definition_data, bytes):
+                            definition_data = definition_data.decode('utf-8')
+                        
+                        print(f"Definition data: {definition_data}")
+                        if definition_data == 'NXcanSAS':
+                            print(f"Found NXcanSAS entry at: {current_path}")
+                            nxcanSAS_entries.append(current_path)
+            
+            # Recursively search within the group
+            nxcanSAS_entries.extend(find_NXcanSAS_entries(item, current_path))
+    
+    return nxcanSAS_entries
 
