@@ -259,8 +259,22 @@ def ImportStepScan(path, filename):
         #Sample
         sample_group = file['/entry/sample']
         sample_dict = read_group_to_dict(sample_group)
-
-
+        # now backgrounds for UPD subtraction later
+        # these are the locations of the background values... 
+        # /entry/instrument/bluesky/streams/baseline/I0_autorange_controls_ranges_gain0_background/value, it is array of start adn end values. 
+        Bkg0 = file["/entry/instrument/bluesky/streams/baseline/upd_autorange_controls_ranges_gain0_background/value"][0]
+        Bkg1 = file["/entry/instrument/bluesky/streams/baseline/upd_autorange_controls_ranges_gain1_background/value"][0]
+        Bkg2 = file["/entry/instrument/bluesky/streams/baseline/upd_autorange_controls_ranges_gain2_background/value"][0]
+        Bkg3 = file["/entry/instrument/bluesky/streams/baseline/upd_autorange_controls_ranges_gain3_background/value"][0]
+        Bkg4 = file["/entry/instrument/bluesky/streams/baseline/upd_autorange_controls_ranges_gain4_background/value"][0]
+        # Create a dictionary to map AmpGain values to their corresponding background values
+        Bkg_map = {
+            "1e4": Bkg0,
+            "1e6": Bkg1,
+            "1e8": Bkg2,
+            "1e10": Bkg3,
+            "1e12": Bkg4
+        }
     # Call the function with your arrays
     check_arrays_same_length(ARangles, TimePerPoint, Monitor, UPD_array)
     #Package these results into dictionary
@@ -274,6 +288,7 @@ def ImportStepScan(path, filename):
                 "sample": sample_dict,
                 "metadata": metadata_dict,
                 "instrument": instrument_dict,
+                "Bkg_map": Bkg_map,
                 }
     
     return data_dict
@@ -285,6 +300,8 @@ def CorrectUPDGainsStep(data_dict):
     UPD_array = data_dict["RawData"]["UPD_array"]
     Monitor = data_dict["RawData"]["Monitor"]
     I0gain = data_dict["RawData"]["I0gain"]
+    TimePerPoint= data_dict["RawData"]["TimePerPoint"]
+    Bkg_map= data_dict["RawData"]["Bkg_map"]
         # for some  reason, the AmpGain is shifted by one value so we need to duplicate the first value and remove end value. 
     first_value = AmpGain[0]
     AmpGain = np.insert(AmpGain, 0, first_value)
@@ -310,9 +327,23 @@ def CorrectUPDGainsStep(data_dict):
                 # if len(change_indices) > 0:
                 #     AmpGain_new[change_indices] = np.nan
                 #Correct UPD for gains with points we  want removed set to Nan
+    #TODO: here we also need to subtract background, not done for now anywhere for step scanning. 
+    #this neds to be done on UPD_array before we correct for gains.
+    # now we need to make a copy of UPD_array and depending on AmpGain value put int BkgX * TimePerPoint
+    # Create a new array to store the results
+    Bckg_corr = np.zeros_like(AmpGain, dtype=float)
+    # Assign background values based on AmpGain and multiply by TimePerPoint
+    # Convert keys to floats in Bkg_map for matching with AmpGain
+    Bkg_map_float_keys = {float(k): v for k, v in Bkg_map.items()}
 
-        #Correct UPD for gains and monitor
-    UPD_corrected = (UPD_array*I0gain)/(AmpGain*Monitor)
+    for i, gain in enumerate(AmpGain):
+        background_value = Bkg_map_float_keys.get(gain, 0) # Default to 0 if not found
+        Bckg_corr[i] = background_value * TimePerPoint[i]/1e7  # Convert to seconds if needed, here we assume TimePerPoint is in microseconds
+    # Now we can correct UPD_array for background
+    # Remove background from UPD_array
+    UPD_array_corr = UPD_array - Bckg_corr       
+    #Correct UPD for gains and monitor
+    UPD_corrected = (UPD_array_corr*I0gain)/(AmpGain*Monitor)
     result = {"Intensity":UPD_corrected}
     return result
 
@@ -565,8 +596,9 @@ def reduceStepScanToQR(path, filename, deleteExisting=True):
     with h5py.File(path+'/'+filename, 'r+') as hdf_file:
         if deleteExisting:
             # Delete the group
-            del hdf_file[location]
-            print("Deleted existing group 'entry/displayData'.")    
+            if location in hdf_file:
+                del hdf_file[location]
+                print("Deleted existing group 'entry/displayData'.")    
         
         if location in hdf_file:
                 # # exists, reuse existing data
@@ -586,8 +618,9 @@ def reduceStepScanToQR(path, filename, deleteExisting=True):
 
 
 if __name__ == "__main__":
-    #Sample = dict()
+    Sample = dict()
     #Sample = reduceStepScanToQR("/home/parallels/Github/Matilda/TestData","USAXS_step.h5")
+    Sample = reduceStepScanToQR(r"C:\Users\ilavsky\Documents\GitHub\Matilda\TestData","USAXS_step.h5")
     #Sample["RawData"]=ImportStepScan("/home/parallels/Github/Matilda","USAXS_step.h5")
         #pp.pprint(Sample)
         #Sample["reducedData"]= CorrectUPDGainsStep(Sample)
@@ -595,8 +628,8 @@ if __name__ == "__main__":
         #pp.pprint(Sample["reducedData"])
     #PlotResults(Sample)
     #flyscan
-    Sample = dict()
-    Sample = reduceFlyscanToQR("./TestData","USAXS.h5",deleteExisting=True)
+    #Sample = dict()
+    #Sample = reduceFlyscanToQR("./TestData","USAXS.h5",deleteExisting=True)
     # Sample["RawData"]=ImportFlyscan("/home/parallels/Github/Matilda","USAXS.h5")
     # #pp.pprint(Sample)
     # Sample["reducedData"]= CorrectUPDGainsFly(Sample)

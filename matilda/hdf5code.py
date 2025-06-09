@@ -251,6 +251,7 @@ def save_dict_to_hdf5(dic, location, h5file):
         for key, item in dic.items():
             if isinstance(item, dict):
                 # Create a new group for nested dictionaries
+                print(f"Creating group: {path} + {key}")
                 group = h5file.create_group(path + key)
                 recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
             else:
