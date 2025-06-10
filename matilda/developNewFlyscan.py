@@ -5,7 +5,7 @@ TODO:
 New, calibrated Flyscan code. 
     use: 
 processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)
-For example of use see: test_matildaLocal() at the end of this file. 
+        For example of use see: test_matildaLocal() at the end of this file. 
 
     returns dictionary of this type:
             result["SampleName"]=sampleName

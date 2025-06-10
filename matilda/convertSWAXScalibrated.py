@@ -55,7 +55,8 @@ from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 def process2Ddata(path, filename, blankPath=None, blankFilename=None, deleteExisting=False):
     # Open the HDF5 file and read its content, parse content in numpy arrays and dictionaries
     location = 'entry/reducedData/'    #we need to make sure we have separate NXcanSAS data here. Is it still entry? 
-    with h5py.File(path+'/'+filename, 'r+') as hdf_file:
+    Filepath = os.path.join(path, filename)
+    with h5py.File(Filepath, 'r+') as hdf_file:
         # Check if the group 'displayData' exists
         # if deleteExisting:
         #     # Delete the group
@@ -144,7 +145,8 @@ def process2Ddata(path, filename, blankPath=None, blankFilename=None, deleteExis
 
 
 def importADData(path, filename):
-    with h5py.File(path+'/'+filename, 'r') as hdf_file:
+    Filepath = os.path.join(path, filename)
+    with h5py.File(Filepath, 'r') as hdf_file:
             Sample = dict()
             #read various data sets
             logging.info(f"Read file :{filename}")
