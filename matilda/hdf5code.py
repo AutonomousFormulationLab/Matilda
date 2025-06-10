@@ -8,6 +8,7 @@
 
 '''
 import h5py
+import os
 import numpy as np
 import six  #what is this for???
 import datetime
@@ -16,7 +17,8 @@ def readNXcanSAS(path, filename):
     '''
     read data from NXcanSAS data in Nexus file. Ignore NXsas data and anything else
     '''
-    with h5py.File(path+'/'+filename, 'r') as f:
+    Filepath = os.path.join(path, filename)
+    with h5py.File(Filepath, 'r') as f:
         # Start at the root
         # Find the NXcanSAS entries 
         # rootgroup=f['/']
@@ -133,7 +135,8 @@ def saveNXcanSAS(Sample,path, filename):
     # SMR_dQ =Sample["CalibratedData"]["SMR_dQ"]
 
     # create the HDF5 NeXus file with same structure as our raw data files have...
-    with h5py.File(path+'/'+filename, "w") as f:
+    Filepath = os.path.join(path, filename)
+    with h5py.File(Filepath, "w") as f:
         # point to the default data to be plotted
         f.attrs['default']          = 'entry'   #our files have one entry input.
         # these are hopefullyoptional and useful. 

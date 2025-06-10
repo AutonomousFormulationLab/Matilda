@@ -2,9 +2,10 @@
 Here we develop new code which then moves to proper package
 TODO:
     convertFlyscancalibrated.py
-        New, calibrated Flyscan code. 
+New, calibrated Flyscan code. 
     use: 
-    processFlyscan(path, filename, blankPath=None, blankFilename=None, deleteExisting=False)
+processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)
+For example of use see: test_matildaLocal() at the end of this file. 
 
     returns dictionary of this type:
             result["SampleName"]=sampleName
@@ -15,8 +16,41 @@ TODO:
             result["CalibratedData"] = {"Intensity":np.ravel(intcalib),
                                     "Q":np.ravel(qcalib),
                                     "Error":np.ravel(errcalib),
-                                    }  
-    Does:
+                                   }  
+
+            this is when read from Nexus file. TODO: check and make sure it all works...  
+                    {'BlankName': 'TapeBlank_R_0317.h5',
+                'Error': array([5.41821571e+08, 3.61214381e+08, 1.80607190e+08, 1.45182650e+08,
+                    8.21066769e+07, 5.28638233e+07, 9.31836113e+07, 3.44934716e+07,
+                        ...
+                    3.70688211e-02, 3.70688211e-02, 3.70688211e-02]),
+                'Error_Attributes': <Attributes of closed HDF5 object>,
+                'Int_attributes': <Attributes of closed HDF5 object>,
+                'Intensity': array([4.52126415e+09, 3.89536685e+09, 3.08490075e+09, 2.58092468e+09,
+                    2.16199554e+09, 1.83504586e+09, 1.49810441e+09, 1.31218746e+09,
+                        ...
+                    3.24382536e-01, 3.68735659e-01, 2.65436440e-01]),
+                'Kfactor': np.float64(1.5194820557062783e-12),
+                'OmegaFactor': np.float64(4.171381472542379e-08),
+                'Q': array([1.05916862e-04, 1.09962784e-04, 1.14017257e-04, 1.18080210e-04,
+                    1.22151570e-04, 1.26231272e-04, 1.30319251e-04, 1.34415446e-04,
+                        ...
+                    2.93847771e-01, 2.97917894e-01, 3.00031668e-01]),
+                'Q_attributes': <Attributes of closed HDF5 object>,
+                'dQ': array([4.04592188e-06, 4.04592188e-06, 4.05447384e-06, 4.06295227e-06,
+                    4.07136056e-06, 4.07970183e-06, 4.08797899e-06, 4.09619476e-06,
+                        ...
+                    8.06617937e-03, 8.17837508e-03, 8.17837508e-03]),
+                'dQ_Attributes': <Attributes of closed HDF5 object>,
+                'label': 'AB3_R_0318',
+                'thickness': np.float64(1.0),
+                'units': '1/cm'}
+                PS C:\Users\ilavsky\Documents\GitHub\Matilda>
+
+
+
+
+   Does:
     Convert Flyscan USAXS data from the HDF5 format to the 1Ddata
     Decide if we need to do desmearing, not ready yet.   
     TODO: 
@@ -27,6 +61,7 @@ TODO:
 '''
 import h5py
 import numpy as np
+import pprint
 #from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
@@ -45,7 +80,8 @@ from desmearing import desmearData
 def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExisting=False):
     # Open the HDF5 file in read/write mode
     #location = 'entry/displayData/'
-    with h5py.File(path+'/'+filename, 'r+') as hdf_file:
+    Filepath = os.path.join(path, filename)
+    with h5py.File(Filepath, 'r+') as hdf_file:
         # Check if the group 'location' exists, if yes, bail out as this is all needed. 
         # if deleteExisting:
         #     # Delete the group
@@ -61,7 +97,7 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
         # else:
             Sample = dict()
             Sample["RawData"]=importFlyscan(path, filename)                 #import data
-            Sample["reducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intesnity with corrected gains and background subtraction
+            Sample["reducedData"]= calculatePD_Fly(Sample)                  # Creates PD_Intensity with corrected gains and background subtraction
             Sample["reducedData"].update(calculatePDError(Sample))          # Calculate UPD error, mostly the same as in Igor                
             Sample["reducedData"].update(beamCenterCorrection(Sample,useGauss=0)) #Beam center correction
             Sample["reducedData"].update(smooth_r_data(Sample["reducedData"]["Intensity"],     #smooth data data
@@ -100,7 +136,7 @@ def processFlyscan(path, filename,blankPath=None, blankFilename=None, deleteExis
                 #save_dict_to_hdf5(Sample, location, hdf_file)
                 #print("Appended new data to 'entry/displayData'.")
             else:
-                #set calibrated data int he structure to None 
+                #set calibrated data in the structure to None 
                 Sample["CalibratedData"] = {"SMR_Qvec":None,
                                             "SMR_Int":None,
                                             "SMR_Error":None,
@@ -203,7 +239,8 @@ def getBlankFlyscan(blankPath, blankFilename, deleteExisting=False):
       # We get the BL_QRS and calibration data as result.
     # Open the HDF5 file in read/write mode
     location = 'entry/blankData/'
-    with h5py.File(blankPath+'/'+blankFilename, 'r+') as hdf_file:
+    Filepath = os.path.join(blankPath, blankFilename)
+    with h5py.File(Filepath, 'r+') as hdf_file:
             # Check if the group 'location' exists, if yes, either delete if asked for or use. 
             if deleteExisting:
                 if location in hdf_file:
@@ -291,30 +328,37 @@ def test_matildaLocal():
     # else:
     #     print("File found")
     #open the file
-    samplePath = "C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs"
-    sampleName="PPOH_25C_2_0068.h5"
-    blankPath="C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs" 
-    blankFilename="HeaterBlank_0060.h5"
+    #samplePath = "C:/Users/ilavsky/Documents/GitHub/Matilda/TestData/TestSet/02_21_Megan_usaxs"
+    samplePath = "\\Mac\Home\Desktop\Data\set1"
+    sampleName="AB3_R_0318.h5"
+    blankPath="\\Mac\Home\Desktop\Data\set1" 
+    blankFilename="TapeBlank_R_0317.h5"
     Sample = processFlyscan(samplePath,sampleName,blankPath=blankPath,blankFilename=blankFilename,deleteExisting=True)    
     
-    # Specify the path and filename
-    file_path = 'C:/Users/ilavsky/Desktop/TestNexus.hdf'  # Replace with your actual file path
-    # Check if the file exists before attempting to delete it
-    if os.path.exists(file_path):
-        try:
-            # Delete the file
-            os.remove(file_path)
-            print(f"File '{file_path}' has been deleted successfully.")
-        except Exception as e:
-            print(f"An error occurred while trying to delete the file: {e}")
-    else:
-        print(f"The file '{file_path}' does not exist.")
-    #removed file
-    saveNXcanSAS(Sample,"C:/Users/ilavsky/Desktop", "TestNexus.hdf")
+    # this is for testing save/restore from Nexus file... 
+    testme=False 
 
-    Data = readNXcanSAS("C:/Users/ilavsky/Desktop", "TestNexus.hdf")
-    Sample = {}
-    Sample['CalibratedData']=Data
+    if (testme):
+        # Specify the path and filename
+        #file_path = 'C:/Users/ilavsky/Desktop/TestNexus.hdf'  # Replace with your actual file path
+        file_path = '\\Mac\Home\Desktop\Data\set1\TestNexus.hdf'  # Replace with your actual file path
+        # Check if the file exists before attempting to delete it
+        if os.path.exists(file_path):
+            try:
+                # Delete the file
+                os.remove(file_path)
+                print(f"File '{file_path}' has been deleted successfully.")
+            except Exception as e:
+                print(f"An error occurred while trying to delete the file: {e}")
+        else:
+            print(f"The file '{file_path}' does not exist.")
+        #removed file
+        saveNXcanSAS(Sample,"\\Mac\Home\Desktop\Data\set1", "TestNexus.hdf")
+
+        Data = readNXcanSAS("\\Mac\Home\Desktop\Data\set1", "TestNexus.hdf")
+        pprint.pprint(Data)
+        Sample = {}
+        Sample['CalibratedData']=Data
     # Q = Sample["reducedData"]["Q"]
     # UPD = Sample["reducedData"]["Intensity"]
     # Error = Sample["reducedData"]["Error"]
