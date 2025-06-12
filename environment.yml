@@ -5,9 +5,9 @@ channels:
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
-  - python=3.12.2
+  - python=3.12.3
   - numpy
-  - h5py
+  - tifffile
   - pandas
   - scipy
   - matplotlib
@@ -15,5 +15,7 @@ dependencies:
   - xarray
   - requests
   - pip
-  - tifffile
+  
+  - pip:
+    - h5py
 
