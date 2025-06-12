@@ -47,10 +47,7 @@ def print_results_summary(r):
     """We'll use this a few times."""
     xref = dict(First=0, Last=-1)
     for k, v in dict(First=0, Last=-1).items():
-        if server ==  "localhost" :
-            md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
-        else:                                          
-            md = r["data"][v]["attributes"]["metadata"]     #this is for usaxscontrol 
+        md = r["data"][v]["attributes"]["metadata"]["selected"]     #this is for usaxscontrol 
         #print(md)
         plan_name = md["plan_name"]
         scan_id = r["data"][v]["id"]
@@ -63,10 +60,7 @@ def print_results_summary(r):
 def convert_results(r):
     OutputList=[]
     for v in range(len(r["data"])):
-        if server ==  "localhost" :
-            md = r["data"][v]["attributes"]["metadata"]["selected"]  #this is for UBUNTU VM, usaxscontrol does not have selected
-        else:                                          
-            md = r["data"][v]["attributes"]["metadata"]     #this is for usaxscontrol 
+        md = r["data"][v]["attributes"]["metadata"]["selected"]     #this is for usaxscontrol 
         #print(md)
         #plan_name = md["plan_name"]
         #scan_id = r["data"][v]["id"]
