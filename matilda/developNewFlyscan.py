@@ -62,12 +62,12 @@ import pprint
 #from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
+from .supportFunctions import subtract_data #read_group_to_dict, filter_nested_dict, check_arrays_same_length
 import os
-from convertUSAXS import rebinData
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5, saveNXcanSAS, readNXcanSAS
-from convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
-from desmearing import desmearData
+from .convertUSAXS import rebinData
+from .hdf5code import save_dict_to_hdf5, load_dict_from_hdf5, saveNXcanSAS, readNXcanSAS
+from .convertUSAXS import importFlyscan, calculatePD_Fly, beamCenterCorrection, smooth_r_data
+from .desmearing import desmearData
 
 
 

@@ -18,11 +18,11 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import pprint as pp
-from supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
-from supportFunctions import gaussian, modifiedGauss
+from .supportFunctions import read_group_to_dict, filter_nested_dict, check_arrays_same_length
+from .supportFunctions import gaussian, modifiedGauss
 import os
-from rebinData import rebin_QRSdata
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from .rebinData import rebin_QRSdata
+from .hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 

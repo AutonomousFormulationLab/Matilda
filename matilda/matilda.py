@@ -4,9 +4,9 @@
 # this will process the data files and generate a plot of UPD vs. Q
 # the test data files are located in the directory: ./TestData/TestSet/02_21_Megan_usaxs
 
-from convertUSAXS import reduceFlyscanToQR, reduceStepScanToQR
-from readfromtiled import FindLastScanData
-from convertSAS import reduceADToQR
+from .convertUSAXS import reduceFlyscanToQR, reduceStepScanToQR
+from .readfromtiled import FindLastScanData
+from .convertSAS import reduceADToQR
 import matplotlib.pyplot as plt
 import pprint as pp
 import numpy as np

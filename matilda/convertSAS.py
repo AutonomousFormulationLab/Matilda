@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 import h5py
-from supportFunctions import read_group_to_dict, filter_nested_dict
+from .supportFunctions import read_group_to_dict, filter_nested_dict
 import pprint as pp
 import os
 import tifffile as tiff
 import logging
-from convertNikaTopyFAI import convert_Nika_to_Fit2D
-from hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
+from .convertNikaTopyFAI import convert_Nika_to_Fit2D
+from .hdf5code import save_dict_to_hdf5, load_dict_from_hdf5
 
 
 ## main code here
